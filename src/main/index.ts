@@ -1,4 +1,4 @@
-import { app, BrowserWindow, powerMonitor, screen, shell } from 'electron'
+import { app, BrowserWindow, powerMonitor, screen } from 'electron'
 import { join } from 'node:path'
 import { IPC } from '../shared/ipc'
 import { DEFAULT_SETTINGS, type Settings } from '../shared/types'
@@ -8,53 +8,14 @@ import { ReminderScheduler } from './scheduler'
 import { SettingsService } from './settingsService'
 import { JsonStore } from './store'
 import { TaskService, type TaskData } from './taskService'
+import { createTray } from './tray'
+import { createMainWindow } from './window'
 
 app.setAppUserModelId('com.lessiskou.less-todo-window')
 
+const flagApp = app as typeof app & { isQuitting?: boolean }
+
 let mainWindow: BrowserWindow | null = null
-
-function createWindow(settings: SettingsService): BrowserWindow {
-  const workArea = screen.getPrimaryDisplay().workArea
-  const stored = settings.get().bounds
-
-  const win = new BrowserWindow({
-    width: 320,
-    height: 420,
-    x: stored?.x ?? workArea.x + workArea.width - 320 - 16,
-    y: stored?.y ?? workArea.y + 16,
-    show: false,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    skipTaskbar: true,
-    alwaysOnTop: settings.get().alwaysOnTop,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
-  })
-
-  win.on('ready-to-show', () => {
-    win.show()
-    win.setAlwaysOnTop(settings.get().alwaysOnTop, 'floating')
-  })
-
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url)
-    return { action: 'deny' }
-  })
-
-  const rendererUrl = process.env['ELECTRON_RENDERER_URL']
-  if (rendererUrl) {
-    void win.loadURL(rendererUrl)
-  } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'))
-  }
-
-  return win
-}
 
 function resizeWindow(win: BrowserWindow, contentHeight: number): void {
   const bounds = win.getBounds()
@@ -64,7 +25,7 @@ function resizeWindow(win: BrowserWindow, contentHeight: number): void {
   win.setBounds({ ...bounds, height })
 }
 
-void app.whenReady().then(() => {
+function setup(): void {
   const userData = app.getPath('userData')
 
   const dataStore = new JsonStore<TaskData>(join(userData, 'data.json'), () => ({
@@ -77,7 +38,38 @@ void app.whenReady().then(() => {
 
   const settings = new SettingsService(settingsStore)
   const service = new TaskService(dataStore)
-  mainWindow = createWindow(settings)
+
+  const applySettings = (next: Settings): void => {
+    if (mainWindow) {
+      mainWindow.setOpacity(next.opacity)
+      mainWindow.setAlwaysOnTop(next.alwaysOnTop, 'floating')
+    }
+    app.setLoginItemSettings({ openAtLogin: next.autostart })
+  }
+
+  applySettings(settings.get())
+  settings.onChange(applySettings)
+
+  mainWindow = createMainWindow(settings, (point) => {
+    settings.update({ bounds: point })
+  })
+
+  createTray({
+    toggleWindow: () => {
+      if (!mainWindow) return
+      if (mainWindow.isVisible()) {
+        mainWindow.hide()
+      } else {
+        mainWindow.show()
+        mainWindow.focus()
+      }
+    },
+    quit: () => app.quit(),
+    getAutostart: () => settings.get().autostart,
+    setAutostart: (value) => {
+      settings.update({ autostart: value })
+    }
+  })
 
   registerIpc(service, settings, {
     showWindow: () => {
@@ -110,14 +102,27 @@ void app.whenReady().then(() => {
   service.onChange(() => scheduler.fireDue())
   scheduler.start()
   powerMonitor.on('resume', () => scheduler.fireDue())
+}
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createWindow(settings)
+const hasLock = app.requestSingleInstanceLock()
+
+if (!hasLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      mainWindow.show()
+      mainWindow.focus()
     }
   })
+
+  void app.whenReady().then(setup)
+}
+
+app.on('before-quit', () => {
+  flagApp.isQuitting = true
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  // 常驻托盘：关闭窗口不退出应用。
 })
