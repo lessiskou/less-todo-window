@@ -54,6 +54,11 @@ export default function TaskRow({
     <div
       className={`row${done ? ' is-done' : ''}${highlighted ? ' is-highlighted' : ''}`}
       data-task-id={task.id}
+      draggable={!done && !editing}
+      onDragStart={(event) => {
+        event.dataTransfer.setData('text/plain', task.id)
+        event.dataTransfer.effectAllowed = 'move'
+      }}
     >
       <button
         type="button"
@@ -101,7 +106,11 @@ export default function TaskRow({
                 →以后
               </button>
             </>
-          ) : null}
+          ) : (
+            <button type="button" className="small" onClick={() => onMove(task.id, 'today')}>
+              →今天
+            </button>
+          )}
           <button type="button" className="small danger" aria-label="删除" onClick={() => onRemove(task.id)}>
             ✕
           </button>

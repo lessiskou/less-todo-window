@@ -1,14 +1,42 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { matchesSearch } from '../../shared/taskOrder'
 import Header from './components/Header'
+import LaterSection from './components/LaterSection'
 import QuickAdd from './components/QuickAdd'
+import SearchBar from './components/SearchBar'
 import TaskList from './components/TaskList'
 import { useTasks } from './hooks/useTasks'
 
 export default function App() {
   const api = useTasks()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const headerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const quickRef = useRef<HTMLDivElement>(null)
+
+  const searching = searchOpen && query.trim().length > 0
+  const filter = (tasks: typeof api.today): typeof api.today =>
+    searching ? tasks.filter((task) => matchesSearch(task, query)) : tasks
+
+  const visibleToday = useMemo(() => filter(api.today), [api.today, searching, query])
+  const visibleLater = useMemo(() => filter(api.later), [api.later, searching, query])
+  const visibleDone = useMemo(() => filter(api.done), [api.done, searching, query])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.ctrlKey && event.key.toLowerCase() === 'f') {
+        event.preventDefault()
+        setSearchOpen(true)
+      }
+      if (event.key === 'Escape' && searchOpen) {
+        setSearchOpen(false)
+        setQuery('')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [searchOpen])
 
   useEffect(() => {
     const target = contentRef.current
@@ -37,17 +65,40 @@ export default function App() {
     }
   }, [])
 
+  const closeSearch = (): void => {
+    setSearchOpen(false)
+    setQuery('')
+  }
+
   return (
     <div className="card">
       <div ref={headerRef}>
-        <Header count={api.today.length} onClose={() => void window.api.hideWindow()} />
+        <Header
+          count={api.today.length}
+          onClose={() => void window.api.hideWindow()}
+          onSearch={() => setSearchOpen((open) => !open)}
+        />
+        {searchOpen ? <SearchBar value={query} onChange={setQuery} onClose={closeSearch} /> : null}
       </div>
 
       <main className="content">
         <div ref={contentRef} className="content-inner">
           <TaskList
-            today={api.today}
-            done={api.done}
+            today={visibleToday}
+            done={visibleDone}
+            forceShowDone={searching}
+            onToggle={(id) => void api.toggle(id)}
+            onRemove={(id) => void api.remove(id)}
+            onMove={(id, list) => void api.move(id, list)}
+            onUpdateText={(id, text) => void api.updateText(id, text)}
+            onSetReminder={(id, at) => void api.setReminder(id, at)}
+            onDropTask={(id) => void api.move(id, 'today')}
+          />
+
+          <LaterSection
+            tasks={visibleLater}
+            total={api.later.length}
+            searching={searching}
             onToggle={(id) => void api.toggle(id)}
             onRemove={(id) => void api.remove(id)}
             onMove={(id, list) => void api.move(id, list)}
