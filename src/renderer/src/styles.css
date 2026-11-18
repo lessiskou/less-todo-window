@@ -157,6 +157,53 @@ input {
   opacity: 0.6;
 }
 
+.snooze {
+  flex: 1 0 100%;
+  display: flex;
+  gap: 6px;
+  padding: 2px 0 2px 24px;
+}
+
+.small.primary {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 12px 8px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.setting-row input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.setting-row input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+.setting-value {
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.setting-error {
+  color: var(--danger);
+  font-size: 11px;
+}
+
 .empty {
   margin: 10px 8px 14px;
   color: var(--muted);

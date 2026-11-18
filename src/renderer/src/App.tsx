@@ -4,11 +4,13 @@ import Header from './components/Header'
 import LaterSection from './components/LaterSection'
 import QuickAdd from './components/QuickAdd'
 import SearchBar from './components/SearchBar'
+import SettingsMenu from './components/SettingsMenu'
 import TaskList from './components/TaskList'
 import { useTasks } from './hooks/useTasks'
 
 export default function App() {
   const api = useTasks()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const headerRef = useRef<HTMLDivElement>(null)
@@ -77,8 +79,10 @@ export default function App() {
           count={api.today.length}
           onClose={() => void window.api.hideWindow()}
           onSearch={() => setSearchOpen((open) => !open)}
+          onSettings={() => setSettingsOpen((open) => !open)}
         />
         {searchOpen ? <SearchBar value={query} onChange={setQuery} onClose={closeSearch} /> : null}
+        {settingsOpen ? <SettingsMenu onClose={() => setSettingsOpen(false)} /> : null}
       </div>
 
       <main className="content">
@@ -92,7 +96,9 @@ export default function App() {
             onMove={(id, list) => void api.move(id, list)}
             onUpdateText={(id, text) => void api.updateText(id, text)}
             onSetReminder={(id, at) => void api.setReminder(id, at)}
+            onSnooze={(id, minutes) => void api.snooze(id, minutes)}
             onDropTask={(id) => void api.move(id, 'today')}
+            highlighted={api.highlighted}
           />
 
           <LaterSection
@@ -104,6 +110,7 @@ export default function App() {
             onMove={(id, list) => void api.move(id, list)}
             onUpdateText={(id, text) => void api.updateText(id, text)}
             onSetReminder={(id, at) => void api.setReminder(id, at)}
+            onSnooze={(id, minutes) => void api.snooze(id, minutes)}
           />
         </div>
       </main>

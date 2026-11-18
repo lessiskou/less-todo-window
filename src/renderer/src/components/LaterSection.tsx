@@ -11,6 +11,7 @@ interface LaterSectionProps {
   onMove(id: string, list: List): void
   onUpdateText(id: string, text: string): void
   onSetReminder(id: string, at: string | null): void
+  onSnooze(id: string, minutes: number): void
 }
 
 export default function LaterSection({
@@ -21,7 +22,8 @@ export default function LaterSection({
   onRemove,
   onMove,
   onUpdateText,
-  onSetReminder
+  onSetReminder,
+  onSnooze
 }: LaterSectionProps) {
   const [expanded, setExpanded] = useState(false)
   const open = expanded || searching
@@ -50,6 +52,7 @@ export default function LaterSection({
               onMove={onMove}
               onUpdateText={onUpdateText}
               onSetReminder={onSetReminder}
+              onSnooze={onSnooze}
             />
           ))
         : null}

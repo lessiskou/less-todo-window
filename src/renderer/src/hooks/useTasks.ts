@@ -9,6 +9,7 @@ export interface TasksApi {
   later: Task[]
   done: Task[]
   hint: string | null
+  highlighted: Set<string>
   add(text: string): Promise<void>
   toggle(id: string): Promise<void>
   remove(id: string): Promise<void>
@@ -27,6 +28,7 @@ export function formatTime(iso: string): string {
 export function useTasks(): TasksApi {
   const [tasks, setTasks] = useState<Task[]>([])
   const [hint, setHint] = useState<string | null>(null)
+  const [highlighted, setHighlighted] = useState<Set<string>>(new Set())
   const hintTimer = useRef<number | null>(null)
 
   const refresh = useCallback(async () => {
@@ -36,8 +38,27 @@ export function useTasks(): TasksApi {
   useEffect(() => {
     void refresh()
     const unsubscribe = window.api.onTasksChanged((next) => setTasks(next))
-    return unsubscribe
+    const unsubscribeHighlight = window.api.onHighlight((ids) => {
+      setHighlighted((previous) => {
+        const next = new Set(previous)
+        for (const id of ids) next.add(id)
+        return next
+      })
+    })
+    return () => {
+      unsubscribe()
+      unsubscribeHighlight()
+    }
   }, [refresh])
+
+  const clearHighlight = useCallback((id: string) => {
+    setHighlighted((previous) => {
+      if (!previous.has(id)) return previous
+      const next = new Set(previous)
+      next.delete(id)
+      return next
+    })
+  }, [])
 
   const showHint = useCallback((text: string) => {
     setHint(text)
@@ -61,13 +82,21 @@ export function useTasks(): TasksApi {
     [showHint]
   )
 
-  const toggle = useCallback(async (id: string) => {
-    await window.api.toggleTask(id)
-  }, [])
+  const toggle = useCallback(
+    async (id: string) => {
+      await window.api.toggleTask(id)
+      clearHighlight(id)
+    },
+    [clearHighlight]
+  )
 
-  const remove = useCallback(async (id: string) => {
-    await window.api.removeTask(id)
-  }, [])
+  const remove = useCallback(
+    async (id: string) => {
+      await window.api.removeTask(id)
+      clearHighlight(id)
+    },
+    [clearHighlight]
+  )
 
   const move = useCallback(async (id: string, list: List) => {
     await window.api.moveTask(id, list)
@@ -77,20 +106,29 @@ export function useTasks(): TasksApi {
     async (id: string, text: string) => {
       if (text.trim().length === 0) {
         await window.api.removeTask(id)
+        clearHighlight(id)
         return
       }
       await window.api.updateTask(id, { text })
     },
-    []
+    [clearHighlight]
   )
 
-  const setReminder = useCallback(async (id: string, at: string | null) => {
-    await window.api.updateTask(id, { reminderAt: at })
-  }, [])
+  const setReminder = useCallback(
+    async (id: string, at: string | null) => {
+      await window.api.updateTask(id, { reminderAt: at })
+      clearHighlight(id)
+    },
+    [clearHighlight]
+  )
 
-  const snooze = useCallback(async (id: string, minutes: number) => {
-    await window.api.snoozeTask(id, minutes)
-  }, [])
+  const snooze = useCallback(
+    async (id: string, minutes: number) => {
+      await window.api.snoozeTask(id, minutes)
+      clearHighlight(id)
+    },
+    [clearHighlight]
+  )
 
   const groups = useMemo(() => groupTasks(tasks), [tasks])
 
@@ -100,6 +138,7 @@ export function useTasks(): TasksApi {
     later: groups.later,
     done: groups.done,
     hint,
+    highlighted,
     add,
     toggle,
     remove,

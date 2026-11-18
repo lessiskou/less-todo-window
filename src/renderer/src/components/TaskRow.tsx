@@ -9,6 +9,7 @@ interface TaskRowProps {
   onMove(id: string, list: List): void
   onUpdateText(id: string, text: string): void
   onSetReminder(id: string, at: string | null): void
+  onSnooze(id: string, minutes: number): void
   highlighted?: boolean
 }
 
@@ -26,6 +27,7 @@ export default function TaskRow({
   onMove,
   onUpdateText,
   onSetReminder,
+  onSnooze,
   highlighted = false
 }: TaskRowProps) {
   const [editing, setEditing] = useState(false)
@@ -146,6 +148,17 @@ export default function TaskRow({
             }}
           >
             清除提醒
+          </button>
+        </div>
+      ) : null}
+
+      {highlighted && !done ? (
+        <div className="snooze">
+          <button type="button" className="small primary" onClick={() => onSnooze(task.id, 5)}>
+            稍后提醒 5 分钟
+          </button>
+          <button type="button" className="small" onClick={() => onSnooze(task.id, 10)}>
+            10 分钟
           </button>
         </div>
       ) : null}

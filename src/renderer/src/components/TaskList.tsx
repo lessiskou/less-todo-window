@@ -11,7 +11,9 @@ interface TaskListProps {
   onMove(id: string, list: List): void
   onUpdateText(id: string, text: string): void
   onSetReminder(id: string, at: string | null): void
+  onSnooze(id: string, minutes: number): void
   onDropTask(id: string): void
+  highlighted: Set<string>
 }
 
 export default function TaskList({
@@ -23,10 +25,15 @@ export default function TaskList({
   onMove,
   onUpdateText,
   onSetReminder,
-  onDropTask
+  onSnooze,
+  onDropTask,
+  highlighted
 }: TaskListProps) {
   const [showDone, setShowDone] = useState(false)
   const doneOpen = showDone || forceShowDone
+  const orderedToday = [...today].sort(
+    (a, b) => Number(highlighted.has(b.id)) - Number(highlighted.has(a.id))
+  )
 
   return (
     <div
@@ -42,7 +49,7 @@ export default function TaskList({
         <p className="empty">今天还没有任务，在下方输入框写点什么</p>
       ) : null}
 
-      {today.map((task) => (
+      {orderedToday.map((task) => (
         <TaskRow
           key={task.id}
           task={task}
@@ -51,6 +58,8 @@ export default function TaskList({
           onMove={onMove}
           onUpdateText={onUpdateText}
           onSetReminder={onSetReminder}
+          onSnooze={onSnooze}
+          highlighted={highlighted.has(task.id)}
         />
       ))}
 
@@ -69,6 +78,7 @@ export default function TaskList({
                   onMove={onMove}
                   onUpdateText={onUpdateText}
                   onSetReminder={onSetReminder}
+                  onSnooze={onSnooze}
                 />
               ))
             : null}
