@@ -38,6 +38,8 @@ function setup(): void {
 
   const settings = new SettingsService(settingsStore)
   const service = new TaskService(dataStore)
+  service.rolloverIfNeeded()
+  const dataWarning = dataStore.loadWarning()
 
   const applySettings = (next: Settings): void => {
     if (mainWindow) {
@@ -53,6 +55,15 @@ function setup(): void {
   mainWindow = createMainWindow(settings, (point) => {
     settings.update({ bounds: point })
   })
+
+  if (dataWarning) {
+    const warningText = dataWarning
+    mainWindow.webContents.on('did-finish-load', () => {
+      setTimeout(() => {
+        mainWindow?.webContents.send(IPC.dataWarning, warningText)
+      }, 300)
+    })
+  }
 
   createTray({
     toggleWindow: () => {
@@ -101,7 +112,16 @@ function setup(): void {
 
   service.onChange(() => scheduler.fireDue())
   scheduler.start()
-  powerMonitor.on('resume', () => scheduler.fireDue())
+
+  setInterval(() => {
+    if (service.rolloverIfNeeded()) scheduler.reschedule()
+  }, 60_000)
+
+  powerMonitor.on('resume', () => {
+    service.rolloverIfNeeded()
+    scheduler.fireDue()
+    scheduler.reschedule()
+  })
 }
 
 const hasLock = app.requestSingleInstanceLock()

@@ -13,6 +13,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [dataWarning, setDataWarning] = useState<string | null>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const quickRef = useRef<HTMLDivElement>(null)
@@ -24,6 +25,11 @@ export default function App() {
   const visibleToday = useMemo(() => filter(api.today), [api.today, searching, query])
   const visibleLater = useMemo(() => filter(api.later), [api.later, searching, query])
   const visibleDone = useMemo(() => filter(api.done), [api.done, searching, query])
+
+  useEffect(() => {
+    const unsubscribe = window.api.onDataWarning((message) => setDataWarning(message))
+    return unsubscribe
+  }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -75,6 +81,14 @@ export default function App() {
   return (
     <div className="card">
       <div ref={headerRef}>
+        {dataWarning ? (
+          <div className="banner warning">
+            <span>{dataWarning}</span>
+            <button type="button" className="small" onClick={() => setDataWarning(null)}>
+              ✕
+            </button>
+          </div>
+        ) : null}
         <Header
           count={api.today.length}
           onClose={() => void window.api.hideWindow()}

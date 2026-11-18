@@ -55,6 +55,31 @@ input {
   box-shadow: var(--shadow);
 }
 
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.banner.warning {
+  background: #fff3bf;
+  color: #5c4400;
+}
+
+.banner .small {
+  color: inherit;
+}
+
+@media (prefers-color-scheme: dark) {
+  .banner.warning {
+    background: #4a3a00;
+    color: #ffe08a;
+  }
+}
+
 .header {
   -webkit-app-region: drag;
   display: flex;
