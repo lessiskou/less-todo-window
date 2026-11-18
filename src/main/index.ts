@@ -1,10 +1,15 @@
-import { app, BrowserWindow, screen, shell } from 'electron'
+import { app, BrowserWindow, powerMonitor, screen, shell } from 'electron'
 import { join } from 'node:path'
+import { IPC } from '../shared/ipc'
 import { DEFAULT_SETTINGS, type Settings } from '../shared/types'
 import { registerIpc } from './ipc'
+import { showReminders } from './notifications'
+import { ReminderScheduler } from './scheduler'
 import { SettingsService } from './settingsService'
 import { JsonStore } from './store'
 import { TaskService, type TaskData } from './taskService'
+
+app.setAppUserModelId('com.lessiskou.less-todo-window')
 
 let mainWindow: BrowserWindow | null = null
 
@@ -84,6 +89,27 @@ void app.whenReady().then(() => {
       if (mainWindow) resizeWindow(mainWindow, height)
     }
   })
+
+  const highlight = (ids: string[]): void => {
+    mainWindow?.webContents.send(IPC.tasksHighlight, ids)
+  }
+
+  const scheduler = new ReminderScheduler({
+    getTasks: () => service.getAll(),
+    now: () => new Date(),
+    markNotified: (ids, at) => service.markNotified(ids, at),
+    notify: (tasks) =>
+      showReminders(tasks, (ids) => {
+        mainWindow?.show()
+        mainWindow?.focus()
+        highlight(ids)
+      }),
+    onFired: highlight
+  })
+
+  service.onChange(() => scheduler.fireDue())
+  scheduler.start()
+  powerMonitor.on('resume', () => scheduler.fireDue())
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
