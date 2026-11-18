@@ -66,12 +66,28 @@ export function useTasks(): TasksApi {
     hintTimer.current = window.setTimeout(() => setHint(null), 3000)
   }, [])
 
+  const guard = useCallback(
+    async (action: () => Promise<void>): Promise<boolean> => {
+      try {
+        await action()
+        return true
+      } catch {
+        showHint('保存失败，请重试')
+        return false
+      }
+    },
+    [showHint]
+  )
+
   const add = useCallback(
     async (raw: string) => {
       const parsed = parseQuickAdd(raw, new Date())
       if (parsed.text.length === 0) return
 
-      await window.api.addTask({ text: parsed.text, reminderAt: parsed.reminderAt })
+      const saved = await guard(() =>
+        window.api.addTask({ text: parsed.text, reminderAt: parsed.reminderAt }).then(() => undefined)
+      )
+      if (!saved) return
 
       if (parsed.timeWasPast) {
         showHint('该时间已过，未设提醒')
@@ -79,55 +95,57 @@ export function useTasks(): TasksApi {
         showHint(`已设提醒 ${formatTime(parsed.reminderAt)}`)
       }
     },
-    [showHint]
+    [guard, showHint]
   )
 
   const toggle = useCallback(
     async (id: string) => {
-      await window.api.toggleTask(id)
-      clearHighlight(id)
+      if (await guard(() => window.api.toggleTask(id))) clearHighlight(id)
     },
-    [clearHighlight]
+    [clearHighlight, guard]
   )
 
   const remove = useCallback(
     async (id: string) => {
-      await window.api.removeTask(id)
-      clearHighlight(id)
+      if (await guard(() => window.api.removeTask(id))) clearHighlight(id)
     },
-    [clearHighlight]
+    [clearHighlight, guard]
   )
 
-  const move = useCallback(async (id: string, list: List) => {
-    await window.api.moveTask(id, list)
-  }, [])
+  const move = useCallback(
+    async (id: string, list: List) => {
+      await guard(() => window.api.moveTask(id, list).then(() => undefined))
+    },
+    [guard]
+  )
 
   const updateText = useCallback(
     async (id: string, text: string) => {
       if (text.trim().length === 0) {
-        await window.api.removeTask(id)
-        clearHighlight(id)
+        if (await guard(() => window.api.removeTask(id))) clearHighlight(id)
         return
       }
-      await window.api.updateTask(id, { text })
+      await guard(() => window.api.updateTask(id, { text }).then(() => undefined))
     },
-    [clearHighlight]
+    [clearHighlight, guard]
   )
 
   const setReminder = useCallback(
     async (id: string, at: string | null) => {
-      await window.api.updateTask(id, { reminderAt: at })
-      clearHighlight(id)
+      if (await guard(() => window.api.updateTask(id, { reminderAt: at }).then(() => undefined))) {
+        clearHighlight(id)
+      }
     },
-    [clearHighlight]
+    [clearHighlight, guard]
   )
 
   const snooze = useCallback(
     async (id: string, minutes: number) => {
-      await window.api.snoozeTask(id, minutes)
-      clearHighlight(id)
+      if (await guard(() => window.api.snoozeTask(id, minutes).then(() => undefined))) {
+        clearHighlight(id)
+      }
     },
-    [clearHighlight]
+    [clearHighlight, guard]
   )
 
   const groups = useMemo(() => groupTasks(tasks), [tasks])

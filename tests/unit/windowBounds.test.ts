@@ -24,7 +24,12 @@ describe('clampToVisible', () => {
     expect(p.y).toBeGreaterThanOrEqual(0);
     expect(p.y).toBeLessThanOrEqual(screen.height - 400);
   });
-  it('多显示器时贴边的窗口保持原样', () => {
-    expect(clampToVisible({ x: 1900, y: 100 }, { width: 320, height: 400 }, [screen])).toEqual({ x: 1900, y: 100 });
+  it('只露出边缘时把窗口拉回可见区域', () => {
+    expect(clampToVisible({ x: 1900, y: 100 }, { width: 320, height: 400 }, [screen])).toEqual({ x: 1600, y: 100 });
+  });
+  it('底部只剩不可用的部分时保证标题栏可见', () => {
+    const p = clampToVisible({ x: 100, y: 1000 }, { width: 320, height: 400 }, [screen]);
+    expect(p.y).toBeLessThanOrEqual(screen.height - 48);
+    expect(p.y).toBeGreaterThanOrEqual(screen.y);
   });
 });

@@ -7,7 +7,7 @@ import { showReminders } from './notifications'
 import { ReminderScheduler } from './scheduler'
 import { SettingsService } from './settingsService'
 import { JsonStore } from './store'
-import { TaskService, type TaskData } from './taskService'
+import { isTaskData, TaskService, type TaskData } from './taskService'
 import { createTray } from './tray'
 import { createMainWindow } from './window'
 
@@ -28,18 +28,27 @@ function resizeWindow(win: BrowserWindow, contentHeight: number): void {
 function setup(): void {
   const userData = app.getPath('userData')
 
-  const dataStore = new JsonStore<TaskData>(join(userData, 'data.json'), () => ({
-    tasks: [],
-    lastRolloverDay: null
-  }))
+  const dataStore = new JsonStore<TaskData>(
+    join(userData, 'data.json'),
+    () => ({
+      tasks: [],
+      lastRolloverDay: null
+    }),
+    isTaskData
+  )
   const settingsStore = new JsonStore<Settings>(join(userData, 'settings.json'), () => ({
     ...DEFAULT_SETTINGS
   }))
 
   const settings = new SettingsService(settingsStore)
   const service = new TaskService(dataStore)
-  service.rolloverIfNeeded()
-  const dataWarning = dataStore.loadWarning()
+  let dataWarning = dataStore.loadWarning()
+  try {
+    service.rolloverIfNeeded()
+  } catch (error) {
+    console.error('跨天结转保存失败', error)
+    dataWarning = dataWarning ?? '数据保存失败，本次更改可能未写入磁盘'
+  }
 
   const applySettings = (next: Settings): void => {
     if (mainWindow) {
@@ -100,7 +109,14 @@ function setup(): void {
   const scheduler = new ReminderScheduler({
     getTasks: () => service.getAll(),
     now: () => new Date(),
-    markNotified: (ids, at) => service.markNotified(ids, at),
+    markNotified: (ids, at) => {
+      try {
+        service.markNotified(ids, at)
+      } catch (error) {
+        // 保存失败也要照常弹出提醒；下次启动时可能重复提醒，但不会丢任务。
+        console.error('记录提醒状态失败', error)
+      }
+    },
     notify: (tasks) =>
       showReminders(tasks, (ids) => {
         mainWindow?.show()
@@ -114,7 +130,13 @@ function setup(): void {
   scheduler.start()
 
   setInterval(() => {
-    if (service.rolloverIfNeeded()) scheduler.reschedule()
+    // 每分钟按墙钟重新核对：跨天结转 + 重建定时器（时钟被调整后也能纠正）。
+    try {
+      service.rolloverIfNeeded()
+    } catch (error) {
+      console.error('定时结转失败', error)
+    }
+    scheduler.fireDue()
   }, 60_000)
 
   powerMonitor.on('resume', () => {

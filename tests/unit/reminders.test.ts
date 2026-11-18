@@ -20,6 +20,12 @@ describe('reminders', () => {
     expect(collectDueTasks([t], now)).toEqual([]);
     expect(nextReminderTime([t], now)).toBeNull();
   });
+  it('跨午夜的过期提醒不补发', () => {
+    const monday = { ...base, id: 'monday', reminderAt: new Date(2026, 10, 17, 23, 50).toISOString() };
+    const tuesdayMorning = new Date(2026, 10, 18, 8, 0);
+    expect(collectDueTasks([monday], tuesdayMorning)).toEqual([]);
+    expect(nextReminderTime([monday], tuesdayMorning)).toBeNull();
+  });
   it('返回最早的未来提醒时间', () => {
     const a = { ...base, id: 'a', reminderAt: iso(12) };
     const b = { ...base, id: 'b', reminderAt: iso(11) };

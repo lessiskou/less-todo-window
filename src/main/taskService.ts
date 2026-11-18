@@ -10,6 +10,30 @@ export interface TaskData {
 
 type ChangeListener = (tasks: Task[]) => void
 
+function isTask(value: unknown): value is Task {
+  if (!value || typeof value !== 'object') return false
+  const task = value as Partial<Task>
+  return (
+    typeof task.id === 'string' &&
+    typeof task.text === 'string' &&
+    (task.list === 'today' || task.list === 'later') &&
+    typeof task.createdAt === 'string' &&
+    (task.doneAt === null || typeof task.doneAt === 'string') &&
+    (task.reminderAt === null || typeof task.reminderAt === 'string') &&
+    (task.notifiedAt === null || typeof task.notifiedAt === 'string')
+  )
+}
+
+export function isTaskData(value: unknown): value is TaskData {
+  if (!value || typeof value !== 'object') return false
+  const data = value as Partial<TaskData>
+  return (
+    Array.isArray(data.tasks) &&
+    data.tasks.every(isTask) &&
+    (data.lastRolloverDay === null || typeof data.lastRolloverDay === 'string')
+  )
+}
+
 export class TaskService {
   private tasks: Task[] = []
   private lastRolloverDay: string | null = null
@@ -20,8 +44,8 @@ export class TaskService {
     private readonly now: () => Date = () => new Date()
   ) {
     const data = store.load()
-    this.tasks = data.tasks ?? []
-    this.lastRolloverDay = data.lastRolloverDay ?? null
+    this.tasks = Array.isArray(data.tasks) ? data.tasks.filter(isTask) : []
+    this.lastRolloverDay = typeof data.lastRolloverDay === 'string' ? data.lastRolloverDay : null
   }
 
   getAll(): Task[] {
@@ -38,8 +62,7 @@ export class TaskService {
       reminderAt: input.reminderAt ?? null,
       notifiedAt: null
     }
-    this.tasks = [...this.tasks, task]
-    this.persist()
+    this.commit([...this.tasks, task])
     return task
   }
 
@@ -77,8 +100,7 @@ export class TaskService {
 
   remove(id: string): void {
     this.require(id)
-    this.tasks = this.tasks.filter((task) => task.id !== id)
-    this.persist()
+    this.commit(this.tasks.filter((task) => task.id !== id))
   }
 
   snooze(id: string, minutes: number): Task {
@@ -95,19 +117,14 @@ export class TaskService {
   markNotified(ids: string[], at: Date): void {
     const wanted = new Set(ids)
     const stamp = at.toISOString()
-    this.tasks = this.tasks.map((task) =>
-      wanted.has(task.id) ? { ...task, notifiedAt: stamp } : task
-    )
-    this.persist()
+    this.commit(this.tasks.map((task) => (wanted.has(task.id) ? { ...task, notifiedAt: stamp } : task)))
   }
 
   rolloverIfNeeded(): boolean {
     const result = applyRollover(this.tasks, this.now(), this.lastRolloverDay)
     if (!result.rolled) return false
 
-    this.tasks = result.tasks
-    this.lastRolloverDay = result.day
-    this.persist()
+    this.commit(result.tasks, result.day)
     return true
   }
 
@@ -122,13 +139,17 @@ export class TaskService {
   }
 
   private replace(updated: Task): void {
-    this.tasks = this.tasks.map((task) => (task.id === updated.id ? updated : task))
-    this.persist()
+    this.commit(this.tasks.map((task) => (task.id === updated.id ? updated : task)))
   }
 
-  private persist(): void {
-    this.store.save({ tasks: this.tasks, lastRolloverDay: this.lastRolloverDay })
-    const snapshot = this.getAll()
+  /**
+   * 先落盘再更新内存并广播：保存失败时调用方拿到异常，内存与磁盘仍一致。
+   */
+  private commit(tasks: Task[], lastRolloverDay = this.lastRolloverDay): void {
+    this.store.save({ tasks, lastRolloverDay })
+    this.tasks = tasks
+    this.lastRolloverDay = lastRolloverDay
+    const snapshot = [...tasks]
     for (const listener of this.listeners) listener(snapshot)
   }
 }

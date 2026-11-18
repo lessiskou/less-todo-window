@@ -27,6 +27,13 @@ describe('applyRollover', () => {
     expect(r.tasks.map(x => x.id)).toEqual(['open', 'later']);
     expect(r.tasks[0].list).toBe('today');
   });
+  it('时钟回拨到前一天时保留任务与通知状态', () => {
+    const task = t({ reminderAt: new Date(2026, 10, 18, 20, 0).toISOString(), notifiedAt: '2026-11-17T23:00:00.000Z' });
+    const r = applyRollover([task], new Date(2026, 10, 17, 9, 0), '2026-11-18');
+    expect(r.rolled).toBe(false);
+    expect(r.tasks[0].reminderAt).not.toBeNull();
+    expect(r.tasks[0].notifiedAt).not.toBeNull();
+  });
   it('跨天：过期提醒清除，未来提醒保留且 notifiedAt 清空', () => {
     const past = t({ id: 'past', reminderAt: '2026-11-17T23:00:00.000Z', notifiedAt: '2026-11-17T23:00:00.000Z' });
     const future = t({ id: 'future', reminderAt: new Date(2026, 10, 18, 20, 0).toISOString(), notifiedAt: '2026-11-17T23:00:00.000Z' });

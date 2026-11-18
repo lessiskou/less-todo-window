@@ -19,6 +19,11 @@ export function applyRollover(tasks: Task[], now: Date, lastDay: string | null):
     return { tasks, day, rolled: false }
   }
 
+  // 时钟回拨（或时区调整）到更早的日子：不当作跨天，避免重复通知或误删任务。
+  if (lastDay !== null && day < lastDay) {
+    return { tasks, day: lastDay, rolled: false }
+  }
+
   const next = tasks
     .filter((task) => task.doneAt === null)
     .map((task) => {

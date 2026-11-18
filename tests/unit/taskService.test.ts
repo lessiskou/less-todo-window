@@ -5,8 +5,13 @@ import type { Task } from '../../src/shared/types';
 
 const fakeStore = () => {
   let data: { tasks: Task[]; lastRolloverDay: string | null } = { tasks: [], lastRolloverDay: '2026-11-18' };
-  const s = { load: () => data, save: (d: typeof data) => { data = d; }, loadWarning: () => null };
-  return { store: s as unknown as JsonStore<typeof data>, get: () => data };
+  let fail = false;
+  const s = {
+    load: () => data,
+    save: (d: typeof data) => { if (fail) throw new Error('disk full'); data = d; },
+    loadWarning: () => null
+  };
+  return { store: s as unknown as JsonStore<typeof data>, get: () => data, failNext: () => { fail = true } };
 };
 
 let svc: TaskService; let st: ReturnType<typeof fakeStore>;
@@ -43,6 +48,17 @@ describe('TaskService', () => {
     const s = svc.snooze(t.id, 10);
     expect(s.reminderAt).toBe(new Date(now.getTime() + 10 * 60000).toISOString());
     expect(s.notifiedAt).toBeNull();
+  });
+  it('保存失败时内存与磁盘保持一致且不广播', () => {
+    const seen: string[][] = [];
+    svc.onChange((tasks) => seen.push(tasks.map((t) => t.text)));
+    svc.add({ text: 'first' });
+    expect(seen).toEqual([['first']]);
+    st.failNext();
+    expect(() => svc.add({ text: 'second' })).toThrow();
+    expect(svc.getAll().map((t) => t.text)).toEqual(['first']);
+    expect(st.get().tasks.map((t) => t.text)).toEqual(['first']);
+    expect(seen).toEqual([['first']]);
   });
   it('跨天结转每天只执行一次', () => {
     expect(svc.rolloverIfNeeded()).toBe(false);
