@@ -1,16 +1,28 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, screen, shell } from 'electron'
 import { join } from 'node:path'
+import { DEFAULT_SETTINGS, type Settings } from '../shared/types'
+import { registerIpc } from './ipc'
+import { SettingsService } from './settingsService'
+import { JsonStore } from './store'
+import { TaskService, type TaskData } from './taskService'
 
-function createWindow(): BrowserWindow {
+let mainWindow: BrowserWindow | null = null
+
+function createWindow(settings: SettingsService): BrowserWindow {
+  const workArea = screen.getPrimaryDisplay().workArea
+  const stored = settings.get().bounds
+
   const win = new BrowserWindow({
     width: 320,
     height: 420,
+    x: stored?.x ?? workArea.x + workArea.width - 320 - 16,
+    y: stored?.y ?? workArea.y + 16,
     show: false,
     frame: false,
     transparent: true,
     resizable: false,
     skipTaskbar: true,
-    alwaysOnTop: true,
+    alwaysOnTop: settings.get().alwaysOnTop,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -21,7 +33,7 @@ function createWindow(): BrowserWindow {
 
   win.on('ready-to-show', () => {
     win.show()
-    win.setAlwaysOnTop(true, 'floating')
+    win.setAlwaysOnTop(settings.get().alwaysOnTop, 'floating')
   })
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -39,11 +51,44 @@ function createWindow(): BrowserWindow {
   return win
 }
 
+function resizeWindow(win: BrowserWindow, contentHeight: number): void {
+  const bounds = win.getBounds()
+  const workArea = screen.getDisplayMatching(bounds).workArea
+  const maxHeight = Math.floor(workArea.height * 0.45)
+  const height = Math.min(Math.max(Math.round(contentHeight), 160), maxHeight)
+  win.setBounds({ ...bounds, height })
+}
+
 void app.whenReady().then(() => {
-  createWindow()
+  const userData = app.getPath('userData')
+
+  const dataStore = new JsonStore<TaskData>(join(userData, 'data.json'), () => ({
+    tasks: [],
+    lastRolloverDay: null
+  }))
+  const settingsStore = new JsonStore<Settings>(join(userData, 'settings.json'), () => ({
+    ...DEFAULT_SETTINGS
+  }))
+
+  const settings = new SettingsService(settingsStore)
+  const service = new TaskService(dataStore)
+  mainWindow = createWindow(settings)
+
+  registerIpc(service, settings, {
+    showWindow: () => {
+      mainWindow?.show()
+      mainWindow?.focus()
+    },
+    hideWindow: () => mainWindow?.hide(),
+    resizeWindow: (height) => {
+      if (mainWindow) resizeWindow(mainWindow, height)
+    }
+  })
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainWindow = createWindow(settings)
+    }
   })
 })
 
