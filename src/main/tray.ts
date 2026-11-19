@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 export interface TrayDeps {
   toggleWindow(): void
+  shortcutLabel: string
   quit(): void
   getAutostart(): boolean
   setAutostart(value: boolean): void
@@ -23,7 +24,7 @@ export function createTray(deps: TrayDeps): Tray {
 
   const refresh = (): void => {
     const menu = Menu.buildFromTemplate([
-      { label: '显示 / 隐藏', click: deps.toggleWindow },
+      { label: `显示 / 隐藏 ${deps.shortcutLabel}`, click: deps.toggleWindow },
       { type: 'separator' },
       {
         label: '开机自启',

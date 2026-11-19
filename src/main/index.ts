@@ -6,16 +6,24 @@ import { registerIpc } from './ipc'
 import { showReminders } from './notifications'
 import { ReminderScheduler } from './scheduler'
 import { SettingsService } from './settingsService'
+import {
+  registerToggleShortcut,
+  TOGGLE_SHORTCUT_LABEL,
+  unregisterToggleShortcut
+} from './shortcut'
 import { JsonStore } from './store'
 import { isTaskData, TaskService, type TaskData } from './taskService'
 import { createTray } from './tray'
 import { createMainWindow } from './window'
+import { setToggleTarget, toggleWindow } from './windowToggle'
 
 app.setAppUserModelId('com.lessiskou.less-todo-window')
 
 const flagApp = app as typeof app & { isQuitting?: boolean }
 
 let mainWindow: BrowserWindow | null = null
+
+setToggleTarget(() => mainWindow)
 
 function resizeWindow(win: BrowserWindow, contentHeight: number): void {
   const bounds = win.getBounds()
@@ -75,15 +83,8 @@ function setup(): void {
   }
 
   createTray({
-    toggleWindow: () => {
-      if (!mainWindow) return
-      if (mainWindow.isVisible()) {
-        mainWindow.hide()
-      } else {
-        mainWindow.show()
-        mainWindow.focus()
-      }
-    },
+    toggleWindow,
+    shortcutLabel: TOGGLE_SHORTCUT_LABEL,
     quit: () => app.quit(),
     getAutostart: () => settings.get().autostart,
     setAutostart: (value) => {
@@ -158,11 +159,18 @@ if (!hasLock) {
     }
   })
 
-  void app.whenReady().then(setup)
+  void app.whenReady().then(() => {
+    setup()
+    registerToggleShortcut(toggleWindow)
+  })
 }
 
 app.on('before-quit', () => {
   flagApp.isQuitting = true
+})
+
+app.on('will-quit', () => {
+  unregisterToggleShortcut()
 })
 
 app.on('window-all-closed', () => {
