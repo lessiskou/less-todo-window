@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { PlusIcon } from './icons'
 
 interface QuickAddProps {
   hint: string | null
@@ -26,14 +27,22 @@ export default function QuickAdd({ hint, onAdd }: QuickAddProps) {
           void submit()
         }}
       >
-        <input
-          ref={inputRef}
-          className="quick-input"
-          placeholder="输入任务，回车添加…"
-          autoFocus
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
+        <div className="quick-field">
+          <span className="add-plus" aria-hidden="true">
+            <PlusIcon size={10} />
+          </span>
+          <input
+            ref={inputRef}
+            className="quick-input"
+            placeholder="写点什么…"
+            autoFocus
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          <span className="kbd" aria-hidden="true">
+            ↵
+          </span>
+        </div>
       </form>
     </div>
   )

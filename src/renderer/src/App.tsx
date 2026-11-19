@@ -6,6 +6,7 @@ import QuickAdd from './components/QuickAdd'
 import SearchBar from './components/SearchBar'
 import SettingsMenu from './components/SettingsMenu'
 import TaskList from './components/TaskList'
+import { CloseIcon } from './components/icons'
 import { useTasks } from './hooks/useTasks'
 
 export default function App() {
@@ -84,8 +85,14 @@ export default function App() {
         {dataWarning ? (
           <div className="banner warning">
             <span>{dataWarning}</span>
-            <button type="button" className="small" onClick={() => setDataWarning(null)}>
-              ✕
+            <button
+              type="button"
+              className="banner-close"
+              aria-label="关闭提示"
+              title="关闭提示"
+              onClick={() => setDataWarning(null)}
+            >
+              <CloseIcon size={12} />
             </button>
           </div>
         ) : null}

@@ -15,6 +15,12 @@
 - **设置**：窗口透明度、始终置顶、开机自启。
 - **本地数据**：不上传、不联网；数据损坏时自动从备份恢复并提示。
 
+## 界面与字体
+
+界面采用青瓷色系，跟随系统浅色 / 深色主题。中文使用随应用打包的
+[霞鹜文楷 Screen](https://github.com/lxgw/LxgwWenKai)，遵循 SIL Open Font
+License 1.1；许可文本随安装包附带（`resources/LXGW-WenKai-OFL.txt`）。
+
 ## 开发
 
 需要 Node 22+（Windows 10/11）。

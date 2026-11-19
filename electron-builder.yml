@@ -8,6 +8,8 @@ files:
 extraResources:
   - from: resources/tray.png
     to: tray.png
+  - from: resources/LXGW-WenKai-OFL.txt
+    to: LXGW-WenKai-OFL.txt
 win:
   target:
     - nsis

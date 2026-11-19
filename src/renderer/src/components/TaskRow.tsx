@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { List, Task } from '../../../shared/types'
 import { formatTime } from '../hooks/useTasks'
+import { BellIcon, CheckIcon, CloseIcon, MoveDownIcon, MoveUpIcon } from './icons'
 
 interface TaskRowProps {
   task: Task
@@ -68,7 +69,7 @@ export default function TaskRow({
         aria-label={done ? '标记为未完成' : '完成'}
         onClick={() => onToggle(task.id)}
       >
-        {done ? '✓' : ''}
+        {done ? <CheckIcon /> : null}
       </button>
 
       {task.reminderAt ? (
@@ -101,26 +102,44 @@ export default function TaskRow({
         <span className="actions">
           {task.list === 'today' ? (
             <>
-              <button type="button" className="small" onClick={() => setReminderOpen((open) => !open)}>
-                提醒
+              <button
+                type="button"
+                className="action"
+                title="提醒"
+                aria-label="设置提醒"
+                onClick={() => setReminderOpen((open) => !open)}
+              >
+                <BellIcon />
               </button>
-              <button type="button" className="small" onClick={() => onMove(task.id, 'later')}>
-                →以后
+              <button
+                type="button"
+                className="action"
+                title="移到以后"
+                aria-label="移到以后"
+                onClick={() => onMove(task.id, 'later')}
+              >
+                <MoveDownIcon />
               </button>
             </>
           ) : (
-            <button type="button" className="small" onClick={() => onMove(task.id, 'today')}>
-              →今天
+            <button
+              type="button"
+              className="action"
+              title="移到今天"
+              aria-label="移到今天"
+              onClick={() => onMove(task.id, 'today')}
+            >
+              <MoveUpIcon />
             </button>
           )}
-          <button type="button" className="small danger" aria-label="删除" onClick={() => onRemove(task.id)}>
-            ✕
+          <button type="button" className="action danger" title="删除" aria-label="删除" onClick={() => onRemove(task.id)}>
+            <CloseIcon />
           </button>
         </span>
       ) : (
         <span className="actions">
-          <button type="button" className="small danger" aria-label="删除" onClick={() => onRemove(task.id)}>
-            ✕
+          <button type="button" className="action danger" title="删除" aria-label="删除" onClick={() => onRemove(task.id)}>
+            <CloseIcon />
           </button>
         </span>
       )}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { List, Task } from '../../../shared/types'
+import { ChevronIcon } from './icons'
 import TaskRow from './TaskRow'
 
 interface LaterSectionProps {
@@ -38,8 +39,14 @@ export default function LaterSection({
         if (id) onMove(id, 'later')
       }}
     >
-      <button type="button" className="later-toggle" onClick={() => setExpanded((value) => !value)}>
-        {open ? '▾' : '▸'} 以后 · {total}
+      <button
+        type="button"
+        className="fold-toggle"
+        aria-expanded={open}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <ChevronIcon className={open ? 'is-open' : undefined} />
+        以后 <span className="fold-count">{total}</span>
       </button>
 
       {open

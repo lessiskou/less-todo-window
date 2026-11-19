@@ -9,6 +9,10 @@ release/
 latest.yml
 builder-debug.yml
 
+# 构建与测试缓存
+coverage/
+*.tsbuildinfo
+
 # 日志
 *.log
 npm-debug.log*

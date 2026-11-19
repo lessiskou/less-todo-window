@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { List, Task } from '../../../shared/types'
+import { ChevronIcon } from './icons'
 import TaskRow from './TaskRow'
 
 interface TaskListProps {
@@ -46,7 +47,7 @@ export default function TaskList({
       }}
     >
       {today.length === 0 && done.length === 0 ? (
-        <p className="empty">今天还没有任务，在下方输入框写点什么</p>
+        <p className="empty">今天还没有任务，在下面写点什么</p>
       ) : null}
 
       {orderedToday.map((task) => (
@@ -65,8 +66,14 @@ export default function TaskList({
 
       {done.length > 0 ? (
         <div className="done-section">
-          <button type="button" className="done-toggle" onClick={() => setShowDone((open) => !open)}>
-            已完成 · {done.length}
+          <button
+            type="button"
+            className="fold-toggle"
+            aria-expanded={doneOpen}
+            onClick={() => setShowDone((open) => !open)}
+          >
+            <ChevronIcon className={doneOpen ? 'is-open' : undefined} />
+            已完成 <span className="fold-count">{done.length}</span>
           </button>
           {doneOpen
             ? done.map((task) => (
