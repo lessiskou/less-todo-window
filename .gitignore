@@ -1,9 +1,35 @@
+# 依赖
 node_modules/
+
+# 构建产物（electron-vite / electron-builder）
 out/
 dist/
+release/
+*.blockmap
+latest.yml
+builder-debug.yml
+
+# 日志
 *.log
-.superpowers/
+npm-debug.log*
+
+# 本地临时文件
+*.tmp
+*.bak
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
 
 # Claude Code 本地工作区（会话设置与临时 worktree）
 .claude/settings.local.json
 .claude/worktrees/
+.superpowers/
+
+# 系统与编辑器
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
