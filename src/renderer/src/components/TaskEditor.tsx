@@ -51,6 +51,8 @@ export default function TaskEditor({ task, onSave, onCancel, onRequestHeight }: 
   // Esc 关闭（窗口级监听，失焦后仍有效）
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
+      // 输入法候选框里的 Esc 先用于取消候选，不应关闭弹层
+      if (event.isComposing) return
       if (event.key === 'Escape') {
         event.preventDefault()
         onCancel()

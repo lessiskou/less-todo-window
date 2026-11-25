@@ -41,6 +41,8 @@ export default function App() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
+      // 编辑弹层打开时，Ctrl+F / Esc 都归弹层所有
+      if (editingTask) return
       if (event.ctrlKey && event.key.toLowerCase() === 'f') {
         event.preventDefault()
         setSearchOpen(true)
@@ -52,7 +54,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [searchOpen])
+  }, [searchOpen, editingTask])
 
   useEffect(() => {
     const target = contentRef.current
