@@ -10,7 +10,7 @@ interface LaterSectionProps {
   onToggle(id: string): void
   onRemove(id: string): void
   onMove(id: string, list: List): void
-  onUpdateText(id: string, text: string): void
+  onEdit(task: Task): void
   onSetReminder(id: string, at: string | null): void
   onSnooze(id: string, minutes: number): void
 }
@@ -22,7 +22,7 @@ export default function LaterSection({
   onToggle,
   onRemove,
   onMove,
-  onUpdateText,
+  onEdit,
   onSetReminder,
   onSnooze
 }: LaterSectionProps) {
@@ -57,7 +57,7 @@ export default function LaterSection({
               onToggle={onToggle}
               onRemove={onRemove}
               onMove={onMove}
-              onUpdateText={onUpdateText}
+              onEdit={onEdit}
               onSetReminder={onSetReminder}
               onSnooze={onSnooze}
             />

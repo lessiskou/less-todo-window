@@ -14,7 +14,7 @@ export interface TasksApi {
   toggle(id: string): Promise<void>
   remove(id: string): Promise<void>
   move(id: string, list: List): Promise<void>
-  updateText(id: string, text: string): Promise<void>
+  updateText(id: string, text: string): Promise<boolean>
   setReminder(id: string, at: string | null): Promise<void>
   snooze(id: string, minutes: number): Promise<void>
   refresh(): Promise<void>
@@ -120,12 +120,13 @@ export function useTasks(): TasksApi {
   )
 
   const updateText = useCallback(
-    async (id: string, text: string) => {
+    async (id: string, text: string): Promise<boolean> => {
       if (text.trim().length === 0) {
-        if (await guard(() => window.api.removeTask(id))) clearHighlight(id)
-        return
+        const removed = await guard(() => window.api.removeTask(id))
+        if (removed) clearHighlight(id)
+        return removed
       }
-      await guard(() => window.api.updateTask(id, { text }).then(() => undefined))
+      return guard(() => window.api.updateTask(id, { text }).then(() => undefined))
     },
     [clearHighlight, guard]
   )

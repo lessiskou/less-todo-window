@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import type { List, Task } from '../../../shared/types'
 import { formatTime } from '../hooks/useTasks'
 import { BellIcon, CheckIcon, CloseIcon, MoveDownIcon, MoveUpIcon } from './icons'
@@ -8,7 +8,7 @@ interface TaskRowProps {
   onToggle(id: string): void
   onRemove(id: string): void
   onMove(id: string, list: List): void
-  onUpdateText(id: string, text: string): void
+  onEdit(task: Task): void
   onSetReminder(id: string, at: string | null): void
   onSnooze(id: string, minutes: number): void
   highlighted?: boolean
@@ -26,38 +26,21 @@ export default function TaskRow({
   onToggle,
   onRemove,
   onMove,
-  onUpdateText,
+  onEdit,
   onSetReminder,
   onSnooze,
   highlighted = false
 }: TaskRowProps) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(task.text)
   const [reminderOpen, setReminderOpen] = useState(false)
-  const cancelEdit = useRef(false)
 
   const done = task.doneAt !== null
   const overdue = !done && task.reminderAt !== null && new Date(task.reminderAt).getTime() < Date.now()
-
-  const startEditing = (): void => {
-    setDraft(task.text)
-    setEditing(true)
-  }
-
-  const commit = (): void => {
-    setEditing(false)
-    if (cancelEdit.current) {
-      cancelEdit.current = false
-      return
-    }
-    if (draft.trim() !== task.text) onUpdateText(task.id, draft)
-  }
 
   return (
     <div
       className={`row${done ? ' is-done' : ''}${highlighted ? ' is-highlighted' : ''}`}
       data-task-id={task.id}
-      draggable={!done && !editing}
+      draggable={!done}
       onDragStart={(event) => {
         event.dataTransfer.setData('text/plain', task.id)
         event.dataTransfer.effectAllowed = 'move'
@@ -76,27 +59,9 @@ export default function TaskRow({
         <span className={`time${overdue ? ' overdue' : ''}`}>{formatTime(task.reminderAt)}</span>
       ) : null}
 
-      {editing ? (
-        <input
-          className="text-edit"
-          value={draft}
-          autoFocus
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') event.currentTarget.blur()
-            if (event.key === 'Escape') {
-              cancelEdit.current = true
-              setDraft(task.text)
-              event.currentTarget.blur()
-            }
-          }}
-        />
-      ) : (
-        <span className="text" title={task.text} onDoubleClick={startEditing}>
-          {task.text}
-        </span>
-      )}
+      <span className="text" title={task.text} onDoubleClick={() => onEdit(task)}>
+        {task.text}
+      </span>
 
       {!done ? (
         <span className="actions">

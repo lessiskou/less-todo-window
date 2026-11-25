@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { matchesSearch } from '../../shared/taskOrder'
+import type { Task } from '../../shared/types'
 import Header from './components/Header'
 import LaterSection from './components/LaterSection'
 import QuickAdd from './components/QuickAdd'
 import SearchBar from './components/SearchBar'
 import SettingsMenu from './components/SettingsMenu'
+import TaskEditor from './components/TaskEditor'
 import TaskList from './components/TaskList'
 import { CloseIcon } from './components/icons'
 import { useTasks } from './hooks/useTasks'
@@ -15,6 +17,11 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [dataWarning, setDataWarning] = useState<string | null>(null)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const closeEditor = useCallback(() => setEditingTask(null), [])
+  const requestHeight = useCallback((height: number) => {
+    void window.api.setContentHeight(height)
+  }, [])
   const headerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const quickRef = useRef<HTMLDivElement>(null)
@@ -49,7 +56,7 @@ export default function App() {
 
   useEffect(() => {
     const target = contentRef.current
-    if (!target) return
+    if (!target || editingTask) return
 
     let timer: number | null = null
     const measure = (): void => {
@@ -72,7 +79,13 @@ export default function App() {
       observer.disconnect()
       if (timer !== null) window.clearTimeout(timer)
     }
-  }, [])
+  }, [editingTask])
+
+  useEffect(() => {
+    if (editingTask && !api.tasks.some((task) => task.id === editingTask.id)) {
+      setEditingTask(null)
+    }
+  }, [api.tasks, editingTask])
 
   const closeSearch = (): void => {
     setSearchOpen(false)
@@ -115,7 +128,7 @@ export default function App() {
             onToggle={(id) => void api.toggle(id)}
             onRemove={(id) => void api.remove(id)}
             onMove={(id, list) => void api.move(id, list)}
-            onUpdateText={(id, text) => void api.updateText(id, text)}
+            onEdit={setEditingTask}
             onSetReminder={(id, at) => void api.setReminder(id, at)}
             onSnooze={(id, minutes) => void api.snooze(id, minutes)}
             onDropTask={(id) => void api.move(id, 'today')}
@@ -129,7 +142,7 @@ export default function App() {
             onToggle={(id) => void api.toggle(id)}
             onRemove={(id) => void api.remove(id)}
             onMove={(id, list) => void api.move(id, list)}
-            onUpdateText={(id, text) => void api.updateText(id, text)}
+            onEdit={setEditingTask}
             onSetReminder={(id, at) => void api.setReminder(id, at)}
             onSnooze={(id, minutes) => void api.snooze(id, minutes)}
           />
@@ -139,6 +152,20 @@ export default function App() {
       <div ref={quickRef}>
         <QuickAdd hint={api.hint} onAdd={api.add} />
       </div>
+
+      {editingTask ? (
+        <TaskEditor
+          key={editingTask.id}
+          task={editingTask}
+          onSave={async (text) => {
+            const ok = await api.updateText(editingTask.id, text)
+            if (ok) setEditingTask(null)
+            return ok
+          }}
+          onCancel={closeEditor}
+          onRequestHeight={requestHeight}
+        />
+      ) : null}
     </div>
   )
 }

@@ -10,7 +10,7 @@ interface TaskListProps {
   onToggle(id: string): void
   onRemove(id: string): void
   onMove(id: string, list: List): void
-  onUpdateText(id: string, text: string): void
+  onEdit(task: Task): void
   onSetReminder(id: string, at: string | null): void
   onSnooze(id: string, minutes: number): void
   onDropTask(id: string): void
@@ -24,7 +24,7 @@ export default function TaskList({
   onToggle,
   onRemove,
   onMove,
-  onUpdateText,
+  onEdit,
   onSetReminder,
   onSnooze,
   onDropTask,
@@ -57,7 +57,7 @@ export default function TaskList({
           onToggle={onToggle}
           onRemove={onRemove}
           onMove={onMove}
-          onUpdateText={onUpdateText}
+          onEdit={onEdit}
           onSetReminder={onSetReminder}
           onSnooze={onSnooze}
           highlighted={highlighted.has(task.id)}
@@ -83,7 +83,7 @@ export default function TaskList({
                   onToggle={onToggle}
                   onRemove={onRemove}
                   onMove={onMove}
-                  onUpdateText={onUpdateText}
+                  onEdit={onEdit}
                   onSetReminder={onSetReminder}
                   onSnooze={onSnooze}
                 />

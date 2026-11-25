@@ -30,14 +30,18 @@ export default function TaskEditor({ task, onSave, onCancel, onRequestHeight }: 
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`
+    // +2 吸收亚像素舍入，避免内容刚好放下时出现多余滚动条
+    el.style.height = `${Math.min(el.scrollHeight + 2, MAX_TEXTAREA_HEIGHT)}px`
   }, [draft])
 
   // 面板高度变化时上报，供 App 撑高窗口
   useEffect(() => {
     const panel = panelRef.current
     if (!panel) return
-    const report = (): void => onRequestHeight(Math.ceil(panel.getBoundingClientRect().height + 24))
+    const report = (): void => {
+      const needed = Math.ceil(panel.getBoundingClientRect().height + 24)
+      onRequestHeight(Math.max(window.outerHeight, needed))
+    }
     const observer = new ResizeObserver(report)
     observer.observe(panel)
     report()
