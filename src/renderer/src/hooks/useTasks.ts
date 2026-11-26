@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { localDayKey } from '../../../shared/rollover'
 import { groupTasks } from '../../../shared/taskOrder'
 import { parseQuickAdd } from '../../../shared/quickAdd'
 import type { List, Task } from '../../../shared/types'
@@ -6,6 +7,7 @@ import type { List, Task } from '../../../shared/types'
 export interface TasksApi {
   tasks: Task[]
   today: Task[]
+  repeat: Task[]
   later: Task[]
   done: Task[]
   hint: string | null
@@ -15,6 +17,10 @@ export interface TasksApi {
   remove(id: string): Promise<void>
   move(id: string, list: List): Promise<void>
   updateText(id: string, text: string): Promise<boolean>
+  saveTask(
+    id: string,
+    patch: { text?: string; repeatDays?: number | null }
+  ): Promise<boolean>
   setReminder(id: string, at: string | null): Promise<void>
   snooze(id: string, minutes: number): Promise<void>
   refresh(): Promise<void>
@@ -85,11 +91,19 @@ export function useTasks(): TasksApi {
       if (parsed.text.length === 0) return
 
       const saved = await guard(() =>
-        window.api.addTask({ text: parsed.text, reminderAt: parsed.reminderAt }).then(() => undefined)
+        window.api
+          .addTask({
+            text: parsed.text,
+            reminderAt: parsed.reminderAt,
+            repeatDays: parsed.repeatDays
+          })
+          .then(() => undefined)
       )
       if (!saved) return
 
-      if (parsed.timeWasPast) {
+      if (parsed.repeatDays !== null) {
+        showHint(`已设循环：每 ${parsed.repeatDays} 天`)
+      } else if (parsed.timeWasPast) {
         showHint('该时间已过，未设提醒')
       } else if (parsed.reminderAt) {
         showHint(`已设提醒 ${formatTime(parsed.reminderAt)}`)
@@ -131,6 +145,12 @@ export function useTasks(): TasksApi {
     [clearHighlight, guard]
   )
 
+  const saveTask = useCallback(
+    async (id: string, patch: { text?: string; repeatDays?: number | null }): Promise<boolean> =>
+      guard(() => window.api.updateTask(id, patch).then(() => undefined)),
+    [guard]
+  )
+
   const setReminder = useCallback(
     async (id: string, at: string | null) => {
       if (await guard(() => window.api.updateTask(id, { reminderAt: at }).then(() => undefined))) {
@@ -149,11 +169,12 @@ export function useTasks(): TasksApi {
     [clearHighlight, guard]
   )
 
-  const groups = useMemo(() => groupTasks(tasks), [tasks])
+  const groups = useMemo(() => groupTasks(tasks, localDayKey(new Date())), [tasks])
 
   return {
     tasks,
     today: groups.today,
+    repeat: groups.repeat,
     later: groups.later,
     done: groups.done,
     hint,
@@ -163,6 +184,7 @@ export function useTasks(): TasksApi {
     remove,
     move,
     updateText,
+    saveTask,
     setReminder,
     snooze,
     refresh

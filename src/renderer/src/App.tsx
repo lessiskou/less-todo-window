@@ -4,6 +4,7 @@ import type { Task } from '../../shared/types'
 import Header from './components/Header'
 import LaterSection from './components/LaterSection'
 import QuickAdd from './components/QuickAdd'
+import RecurringSection from './components/RecurringSection'
 import SearchBar from './components/SearchBar'
 import SettingsMenu from './components/SettingsMenu'
 import TaskEditor from './components/TaskEditor'
@@ -31,6 +32,7 @@ export default function App() {
     searching ? tasks.filter((task) => matchesSearch(task, query)) : tasks
 
   const visibleToday = useMemo(() => filter(api.today), [api.today, searching, query])
+  const visibleRepeat = useMemo(() => filter(api.repeat), [api.repeat, searching, query])
   const visibleLater = useMemo(() => filter(api.later), [api.later, searching, query])
   const visibleDone = useMemo(() => filter(api.done), [api.done, searching, query])
 
@@ -135,6 +137,18 @@ export default function App() {
             onSnooze={(id, minutes) => void api.snooze(id, minutes)}
             onDropTask={(id) => void api.move(id, 'today')}
             highlighted={api.highlighted}
+          />
+
+          <RecurringSection
+            tasks={visibleRepeat}
+            total={api.repeat.length}
+            searching={searching}
+            onToggle={(id) => void api.toggle(id)}
+            onRemove={(id) => void api.remove(id)}
+            onMove={(id, list) => void api.move(id, list)}
+            onEdit={setEditingTask}
+            onSetReminder={(id, at) => void api.setReminder(id, at)}
+            onSnooze={(id, minutes) => void api.snooze(id, minutes)}
           />
 
           <LaterSection
