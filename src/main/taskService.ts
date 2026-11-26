@@ -17,7 +17,7 @@ function isTask(value: unknown): value is Task {
   return (
     typeof task.id === 'string' &&
     typeof task.text === 'string' &&
-    (task.list === 'today' || task.list === 'later') &&
+    (task.list === 'today' || task.list === 'later' || task.list === 'repeat') &&
     typeof task.createdAt === 'string' &&
     (task.doneAt === null || typeof task.doneAt === 'string') &&
     (task.reminderAt === null || typeof task.reminderAt === 'string') &&

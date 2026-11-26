@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TaskService } from '../../src/main/taskService';
+import { isTaskData, TaskService } from '../../src/main/taskService';
 import type { JsonStore } from '../../src/main/store';
 import type { Task } from '../../src/shared/types';
 
@@ -22,6 +22,17 @@ beforeEach(() => {
   svc = new TaskService(st.store, () => now);
   svc.getAll();
 });
+
+describe('isTaskData', () => {
+  it('接受循环任务，重启后不会被丢弃', () => {
+    const repeat: Task = {
+      id: 'r1', text: '洗床单', list: 'repeat',
+      createdAt: '2026-11-20T01:00:00.000Z', doneAt: null,
+      reminderAt: null, notifiedAt: null, repeatDays: 15, dueOn: '2026-11-26'
+    }
+    expect(isTaskData({ tasks: [repeat], lastRolloverDay: '2026-11-26' })).toBe(true)
+  })
+})
 
 describe('TaskService', () => {
   it('添加默认进今天并持久化', () => {
