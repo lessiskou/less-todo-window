@@ -17,13 +17,15 @@ export interface Settings {
   opacity: number
   alwaysOnTop: boolean
   autostart: boolean
+  promptedUpdateVersion: string | null
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   bounds: null,
   opacity: 1,
   alwaysOnTop: true,
-  autostart: false
+  autostart: false,
+  promptedUpdateVersion: null
 }
 
 export interface QuickAddParse {
