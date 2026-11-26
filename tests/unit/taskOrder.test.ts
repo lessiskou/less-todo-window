@@ -13,7 +13,7 @@ describe('groupTasks', () => {
     const b = t({ text: '十点', reminderAt: '2026-11-18T02:00:00.000Z', createdAt: '2026-11-18T03:00:00.000Z' });
     const c = t({ text: '九点', reminderAt: '2026-11-18T01:00:00.000Z', createdAt: '2026-11-18T04:00:00.000Z' });
     const d = t({ text: '做完了', doneAt: '2026-11-18T05:00:00.000Z' });
-    const g = groupTasks([a, b, c, d]);
+    const g = groupTasks([a, b, c, d], '2026-11-18');
     expect(g.today.map(x => x.text)).toEqual(['九点', '十点', '无时间A']);
     expect(g.done.map(x => x.text)).toEqual(['做完了']);
   });
@@ -21,9 +21,24 @@ describe('groupTasks', () => {
     const l1 = t({ list: 'later', text: 'L1', createdAt: '2026-11-18T02:00:00.000Z' });
     const l2 = t({ list: 'later', text: 'L2', createdAt: '2026-11-18T01:00:00.000Z' });
     const ld = t({ list: 'later', text: 'LD', doneAt: '2026-11-18T06:00:00.000Z' });
-    const g = groupTasks([l1, l2, ld]);
+    const g = groupTasks([l1, l2, ld], '2026-11-18');
     expect(g.later.map(x => x.text)).toEqual(['L2', 'L1']);
     expect(g.done.map(x => x.text)).toEqual(['LD']);
+  });
+  it('到期循环进今天且置顶，未到期只在循环栏', () => {
+    const due = t({ list: 'repeat', text: '到期', repeatDays: 15, dueOn: '2026-11-18' });
+    const overdue = t({ list: 'repeat', text: '逾期', repeatDays: 15, dueOn: '2026-11-10' });
+    const future = t({ list: 'repeat', text: '未到期', repeatDays: 15, dueOn: '2026-12-01' });
+    const timed = t({ text: '十点', reminderAt: '2026-11-18T02:00:00.000Z' });
+    const g = groupTasks([due, overdue, future, timed], '2026-11-18');
+    expect(g.today.map((x) => x.text)).toEqual(['逾期', '到期', '十点']);
+    expect(g.repeat.map((x) => x.text)).toEqual(['逾期', '到期', '未到期']);
+  });
+  it('普通任务不会因为旧数据缺字段被当成循环', () => {
+    const legacy = { ...t({ text: '旧' }), repeatDays: undefined, dueOn: undefined };
+    const g = groupTasks([legacy as unknown as Task], '2026-11-18');
+    expect(g.repeat).toHaveLength(0);
+    expect(g.today.map((x) => x.text)).toEqual(['旧']);
   });
 });
 
