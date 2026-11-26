@@ -27,6 +27,9 @@ export function applyRollover(tasks: Task[], now: Date, lastDay: string | null):
   const next = tasks
     .filter((task) => task.doneAt === null)
     .map((task) => {
+      if (task.list === 'repeat') {
+        return { ...task, notifiedAt: null }
+      }
       if (task.list === 'later') {
         return { ...task, reminderAt: null, notifiedAt: null }
       }

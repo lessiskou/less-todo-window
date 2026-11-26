@@ -34,6 +34,14 @@ describe('applyRollover', () => {
     expect(r.tasks[0].reminderAt).not.toBeNull();
     expect(r.tasks[0].notifiedAt).not.toBeNull();
   });
+  it('跨天：循环任务原样保留，逾期 dueOn 不顺延', () => {
+    const repeat = t({ id: 'r', list: 'repeat', repeatDays: 15, dueOn: '2026-11-10' })
+    const r = applyRollover([repeat], now, '2026-11-17')
+    expect(r.tasks).toHaveLength(1)
+    expect(r.tasks[0].list).toBe('repeat')
+    expect(r.tasks[0].dueOn).toBe('2026-11-10')
+    expect(r.tasks[0].repeatDays).toBe(15)
+  })
   it('跨天：过期提醒清除，未来提醒保留且 notifiedAt 清空', () => {
     const past = t({ id: 'past', reminderAt: '2026-11-17T23:00:00.000Z', notifiedAt: '2026-11-17T23:00:00.000Z' });
     const future = t({ id: 'future', reminderAt: new Date(2026, 10, 18, 20, 0).toISOString(), notifiedAt: '2026-11-17T23:00:00.000Z' });
