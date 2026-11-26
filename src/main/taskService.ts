@@ -31,6 +31,40 @@ function isTask(value: unknown): value is Task {
   )
 }
 
+function isValidRepeatDays(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= 365
+}
+
+/**
+ * 修复磁盘上可能出现的非法循环行：缺周期或已完成则降级为普通任务，
+ * 缺到期日则按今天重算，避免界面上出现「每 null 天 · 下次 NaN/NaN」。
+ */
+function normalizeLoadedTask(task: Task, todayKey: string): Task {
+  if (task.repeatDays == null) {
+    return {
+      ...task,
+      repeatDays: null,
+      dueOn: null,
+      list: task.list === 'repeat' ? 'today' : task.list
+    }
+  }
+  if (task.doneAt !== null) {
+    return {
+      ...task,
+      repeatDays: null,
+      dueOn: null,
+      list: task.list === 'repeat' ? 'today' : task.list
+    }
+  }
+  return {
+    ...task,
+    list: 'repeat',
+    dueOn: task.dueOn ?? addDaysToDayKey(todayKey, task.repeatDays),
+    reminderAt: null,
+    notifiedAt: null
+  }
+}
+
 export function isTaskData(value: unknown): value is TaskData {
   if (!value || typeof value !== 'object') return false
   const data = value as Partial<TaskData>
@@ -51,12 +85,9 @@ export class TaskService {
     private readonly now: () => Date = () => new Date()
   ) {
     const data = store.load()
+    const todayKey = localDayKey(this.now())
     this.tasks = Array.isArray(data.tasks)
-      ? data.tasks.filter(isTask).map((task) => ({
-          ...task,
-          repeatDays: task.repeatDays ?? null,
-          dueOn: task.dueOn ?? null
-        }))
+      ? data.tasks.filter(isTask).map((task) => normalizeLoadedTask(task, todayKey))
       : []
     this.lastRolloverDay = typeof data.lastRolloverDay === 'string' ? data.lastRolloverDay : null
   }
@@ -71,8 +102,10 @@ export class TaskService {
     reminderAt?: string | null
     repeatDays?: number | null
   }): Task {
-    const repeatDays =
-      input.repeatDays != null && input.repeatDays >= 1 ? input.repeatDays : null
+    if (input.repeatDays != null && !isValidRepeatDays(input.repeatDays)) {
+      throw new Error('循环天数必须是 1–365 的整数')
+    }
+    const repeatDays = input.repeatDays ?? null
     const todayKey = localDayKey(this.now())
     const task: Task = {
       id: randomUUID(),
@@ -94,6 +127,9 @@ export class TaskService {
     patch: { text?: string; reminderAt?: string | null; repeatDays?: number | null }
   ): Task {
     const task = this.require(id)
+    if (patch.repeatDays != null && !isValidRepeatDays(patch.repeatDays)) {
+      throw new Error('循环天数必须是 1–365 的整数')
+    }
     const todayKey = localDayKey(this.now())
     const updated: Task = { ...task }
 

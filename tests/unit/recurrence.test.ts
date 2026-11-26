@@ -30,4 +30,8 @@ describe('formatDueLabel', () => {
     expect(formatDueLabel('2026-12-03')).toBe('12/3')
     expect(formatDueLabel('2026-12-25')).toBe('12/25')
   })
+  it('无效日期返回占位符而不是 NaN/NaN', () => {
+    expect(formatDueLabel('')).toBe('—')
+    expect(formatDueLabel('2026-xx-yy')).toBe('—')
+  })
 })

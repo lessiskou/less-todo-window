@@ -85,6 +85,69 @@ describe('TaskService', () => {
     expect(loaded.dueOn).toBeNull()
     expect(loaded.text).toBe('旧任务')
   })
+  it('加载损坏的循环任务：缺 dueOn 时按今天重算', () => {
+    const s = fakeStore()
+    s.get().tasks = [{
+      id: 'r1', text: '洗床单', list: 'repeat',
+      createdAt: '2026-11-20T01:00:00.000Z', doneAt: null,
+      reminderAt: null, notifiedAt: null, repeatDays: 15, dueOn: null
+    }]
+    const svcOld = new TaskService(s.store, () => now)
+    const [loaded] = svcOld.getAll()
+    expect(loaded.list).toBe('repeat')
+    expect(loaded.repeatDays).toBe(15)
+    expect(loaded.dueOn).toBe('2026-12-03')
+  })
+  it('加载损坏的循环任务：缺 repeatDays 时降级为今天任务', () => {
+    const s = fakeStore()
+    s.get().tasks = [{
+      id: 'r1', text: '洗床单', list: 'repeat',
+      createdAt: '2026-11-20T01:00:00.000Z', doneAt: null,
+      reminderAt: null, notifiedAt: null, repeatDays: null, dueOn: null
+    }]
+    const svcOld = new TaskService(s.store, () => now)
+    const [loaded] = svcOld.getAll()
+    expect(loaded.list).toBe('today')
+    expect(loaded.repeatDays).toBeNull()
+    expect(loaded.dueOn).toBeNull()
+  })
+  it('加载已完成的循环任务：降级为普通已完成任务', () => {
+    const s = fakeStore()
+    s.get().tasks = [{
+      id: 'r1', text: '洗床单', list: 'repeat',
+      createdAt: '2026-11-20T01:00:00.000Z', doneAt: '2026-11-25T01:00:00.000Z',
+      reminderAt: null, notifiedAt: null, repeatDays: 15, dueOn: '2026-11-26'
+    }]
+    const svcOld = new TaskService(s.store, () => now)
+    const [loaded] = svcOld.getAll()
+    expect(loaded.list).toBe('today')
+    expect(loaded.repeatDays).toBeNull()
+    expect(loaded.dueOn).toBeNull()
+    expect(loaded.doneAt).toBe('2026-11-25T01:00:00.000Z')
+  })
+  it('拒绝非整数或超出 1–365 的循环天数', () => {
+    expect(() => svc.add({ text: 'x', repeatDays: 1.5 })).toThrow('循环天数必须是 1–365 的整数')
+    expect(() => svc.add({ text: 'x', repeatDays: 0 })).toThrow('循环天数必须是 1–365 的整数')
+    expect(() => svc.add({ text: 'x', repeatDays: 366 })).toThrow('循环天数必须是 1–365 的整数')
+    const t = svc.add({ text: '洗床单', repeatDays: 15 })
+    expect(() => svc.update(t.id, { repeatDays: 1.5 })).toThrow('循环天数必须是 1–365 的整数')
+  })
+  it('勾掉逾期循环任务：从今天顺延而不是从旧到期日', () => {
+    const s = fakeStore()
+    s.get().tasks = [{
+      id: 'r1', text: '洗床单', list: 'repeat',
+      createdAt: '2026-11-20T01:00:00.000Z', doneAt: null,
+      reminderAt: null, notifiedAt: null, repeatDays: 15, dueOn: '2026-11-10'
+    }]
+    const svcPast = new TaskService(s.store, () => now)
+    expect(svcPast.toggle('r1').dueOn).toBe('2026-12-03')
+  })
+  it('同一天连续勾掉两次，到期日不漂移', () => {
+    const t = svc.add({ text: '洗床单', repeatDays: 15 })
+    svc.toggle(t.id)
+    const again = svc.toggle(t.id)
+    expect(again.dueOn).toBe('2026-12-03')
+  })
   it('新建循环任务：进循环栏，首个到期日为今天+N，无提醒', () => {
     const t = svc.add({ text: '洗床单', repeatDays: 15 })
     expect(t.list).toBe('repeat')
