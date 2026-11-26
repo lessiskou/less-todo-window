@@ -30,4 +30,5 @@ export interface QuickAddParse {
   text: string
   reminderAt: string | null
   timeWasPast: boolean
+  repeatDays: number | null
 }
