@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { applyRollover } from '../shared/rollover'
+import { addDaysToDayKey } from '../shared/recurrence'
+import { applyRollover, localDayKey } from '../shared/rollover'
 import type { List, Task } from '../shared/types'
 import type { JsonStore } from './store'
 
@@ -64,36 +65,83 @@ export class TaskService {
     return [...this.tasks]
   }
 
-  add(input: { text: string; list?: List; reminderAt?: string | null }): Task {
+  add(input: {
+    text: string
+    list?: List
+    reminderAt?: string | null
+    repeatDays?: number | null
+  }): Task {
+    const repeatDays =
+      input.repeatDays != null && input.repeatDays >= 1 ? input.repeatDays : null
+    const todayKey = localDayKey(this.now())
     const task: Task = {
       id: randomUUID(),
       text: input.text.trim(),
-      list: input.list ?? 'today',
+      list: repeatDays !== null ? 'repeat' : (input.list ?? 'today'),
       createdAt: this.now().toISOString(),
       doneAt: null,
-      reminderAt: input.reminderAt ?? null,
+      reminderAt: repeatDays !== null ? null : (input.reminderAt ?? null),
       notifiedAt: null,
-      repeatDays: null,
-      dueOn: null
+      repeatDays,
+      dueOn: repeatDays !== null ? addDaysToDayKey(todayKey, repeatDays) : null
     }
     this.commit([...this.tasks, task])
     return task
   }
 
-  update(id: string, patch: { text?: string; reminderAt?: string | null }): Task {
+  update(
+    id: string,
+    patch: { text?: string; reminderAt?: string | null; repeatDays?: number | null }
+  ): Task {
     const task = this.require(id)
-    const updated: Task = {
-      ...task,
-      text: patch.text !== undefined ? patch.text.trim() : task.text,
-      reminderAt: patch.reminderAt !== undefined ? patch.reminderAt : task.reminderAt
+    const todayKey = localDayKey(this.now())
+    const updated: Task = { ...task }
+
+    if (patch.text !== undefined) updated.text = patch.text.trim()
+
+    const currentRepeat = task.repeatDays
+    const nextRepeat =
+      patch.repeatDays !== undefined
+        ? patch.repeatDays != null && patch.repeatDays >= 1
+          ? patch.repeatDays
+          : null
+        : currentRepeat
+
+    if (patch.repeatDays !== undefined && task.doneAt === null && nextRepeat !== currentRepeat) {
+      if (nextRepeat === null) {
+        updated.repeatDays = null
+        updated.dueOn = null
+        updated.list = 'today'
+      } else {
+        updated.repeatDays = nextRepeat
+        updated.dueOn = addDaysToDayKey(todayKey, nextRepeat)
+        updated.list = 'repeat'
+        updated.reminderAt = null
+        updated.notifiedAt = null
+      }
     }
-    if (patch.reminderAt !== undefined) updated.notifiedAt = null
+
+    if (updated.repeatDays == null && patch.reminderAt !== undefined) {
+      updated.reminderAt = patch.reminderAt
+      updated.notifiedAt = null
+    }
+
     this.replace(updated)
     return updated
   }
 
   toggle(id: string): Task {
     const task = this.require(id)
+    if (task.repeatDays != null) {
+      const updated: Task = {
+        ...task,
+        dueOn: addDaysToDayKey(localDayKey(this.now()), task.repeatDays),
+        doneAt: null,
+        notifiedAt: null
+      }
+      this.replace(updated)
+      return updated
+    }
     const updated: Task = {
       ...task,
       doneAt: task.doneAt === null ? this.now().toISOString() : null
@@ -104,6 +152,7 @@ export class TaskService {
 
   move(id: string, list: List): Task {
     const task = this.require(id)
+    if (task.repeatDays != null) throw new Error('循环任务不能移动到其他列表')
     const updated: Task =
       list === 'later'
         ? { ...task, list, reminderAt: null, notifiedAt: null }

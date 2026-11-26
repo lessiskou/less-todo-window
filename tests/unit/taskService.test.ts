@@ -74,6 +74,58 @@ describe('TaskService', () => {
     expect(loaded.dueOn).toBeNull()
     expect(loaded.text).toBe('旧任务')
   })
+  it('新建循环任务：进循环栏，首个到期日为今天+N，无提醒', () => {
+    const t = svc.add({ text: '洗床单', repeatDays: 15 })
+    expect(t.list).toBe('repeat')
+    expect(t.repeatDays).toBe(15)
+    expect(t.dueOn).toBe('2026-12-03')
+    expect(t.reminderAt).toBeNull()
+  })
+  it('勾掉循环任务：不记完成，dueOn 从今天顺延', () => {
+    const t = svc.add({ text: '洗床单', repeatDays: 15 })
+    const next = svc.toggle(t.id)
+    expect(next.doneAt).toBeNull()
+    expect(next.list).toBe('repeat')
+    expect(next.dueOn).toBe('2026-12-03')
+  })
+  it('编辑循环：改为 30 天从今天重排，清空后变成普通今天任务', () => {
+    const t = svc.add({ text: '洗床单', repeatDays: 15 })
+    const longer = svc.update(t.id, { repeatDays: 30 })
+    expect(longer.dueOn).toBe('2026-12-18')
+    const plain = svc.update(t.id, { repeatDays: null })
+    expect(plain.list).toBe('today')
+    expect(plain.repeatDays).toBeNull()
+    expect(plain.dueOn).toBeNull()
+  })
+  it('普通任务设置循环后进入循环栏', () => {
+    const t = svc.add({ text: '换滤芯' })
+    const recurring = svc.update(t.id, { repeatDays: 30 })
+    expect(recurring.list).toBe('repeat')
+    expect(recurring.dueOn).toBe('2026-12-18')
+  })
+  it('循环任务不能移动列表', () => {
+    const t = svc.add({ text: '洗床单', repeatDays: 15 })
+    expect(() => svc.move(t.id, 'later')).toThrow('循环任务不能移动到其他列表')
+  })
+  it('编辑文本不改列表与到期日', () => {
+    const later = svc.add({ text: '以后再说', list: 'later' })
+    const editedLater = svc.update(later.id, { text: '改个名字', repeatDays: null })
+    expect(editedLater.list).toBe('later')
+
+    const repeat = svc.add({ text: '洗床单', repeatDays: 15 })
+    const editedRepeat = svc.update(repeat.id, { text: '洗床单和枕套', repeatDays: 15 })
+    expect(editedRepeat.list).toBe('repeat')
+    expect(editedRepeat.dueOn).toBe('2026-12-03')
+  })
+  it('已完成任务忽略循环改动', () => {
+    const t = svc.add({ text: 'x' })
+    svc.toggle(t.id)
+    const edited = svc.update(t.id, { text: 'y', repeatDays: 15 })
+    expect(edited.doneAt).not.toBeNull()
+    expect(edited.repeatDays).toBeNull()
+    expect(edited.dueOn).toBeNull()
+    expect(edited.list).toBe('today')
+  })
   it('跨天结转每天只执行一次', () => {
     expect(svc.rolloverIfNeeded()).toBe(false);
     const later = new Date(2026, 10, 19, 8, 0);
