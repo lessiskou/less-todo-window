@@ -19,8 +19,16 @@ export const IPC = {
 
 export interface RendererApi {
   getTasks(): Promise<Task[]>
-  addTask(input: { text: string; list?: List; reminderAt?: string | null }): Promise<Task>
-  updateTask(id: string, patch: { text?: string; reminderAt?: string | null }): Promise<Task>
+  addTask(input: {
+    text: string
+    list?: List
+    reminderAt?: string | null
+    repeatDays?: number | null
+  }): Promise<Task>
+  updateTask(
+    id: string,
+    patch: { text?: string; reminderAt?: string | null; repeatDays?: number | null }
+  ): Promise<Task>
   toggleTask(id: string): Promise<void>
   moveTask(id: string, list: List): Promise<Task>
   removeTask(id: string): Promise<void>

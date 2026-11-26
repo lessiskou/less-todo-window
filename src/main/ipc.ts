@@ -13,10 +13,16 @@ export interface IpcDeps {
 export function createHandlers(service: TaskService, settings: SettingsService) {
   return {
     [IPC.tasksGet]: () => service.getAll(),
-    [IPC.tasksAdd]: (input: { text: string; list?: List; reminderAt?: string | null }) =>
-      service.add(input),
-    [IPC.tasksUpdate]: (id: string, patch: { text?: string; reminderAt?: string | null }) =>
-      service.update(id, patch),
+    [IPC.tasksAdd]: (input: {
+      text: string
+      list?: List
+      reminderAt?: string | null
+      repeatDays?: number | null
+    }) => service.add(input),
+    [IPC.tasksUpdate]: (
+      id: string,
+      patch: { text?: string; reminderAt?: string | null; repeatDays?: number | null }
+    ) => service.update(id, patch),
     [IPC.tasksToggle]: (id: string) => service.toggle(id),
     [IPC.tasksMove]: (id: string, list: List) => service.move(id, list),
     [IPC.tasksRemove]: (id: string) => {

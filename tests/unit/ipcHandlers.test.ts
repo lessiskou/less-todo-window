@@ -27,7 +27,7 @@ const setup = () => {
   const calls: { movedTo?: [string, string] } = {}
   const service = {
     getAll: () => [baseTask],
-    add: (input: { text: string }) => ({ ...baseTask, text: input.text }),
+    add: (input: { text: string; repeatDays?: number | null }) => ({ ...baseTask, ...input }),
     update: (id: string, patch: Partial<Task>) => ({ ...baseTask, ...patch, id }),
     toggle: (id: string) => ({ ...baseTask, id }),
     move: (id: string, list: 'today' | 'later') => {
@@ -67,6 +67,12 @@ describe('createHandlers', () => {
     const { handlers, calls } = setup()
     handlers[IPC.tasksMove]('t1', 'later')
     expect(calls.movedTo).toEqual(['t1', 'later'])
+  })
+  it('tasksAdd / tasksUpdate 透传 repeatDays', () => {
+    const { handlers } = setup()
+    expect(handlers[IPC.tasksAdd]({ text: '洗床单', repeatDays: 15 }).text).toBe('洗床单')
+    const updated = handlers[IPC.tasksUpdate]('t1', { repeatDays: 30 })
+    expect(updated.repeatDays).toBe(30)
   })
   it('settingsUpdate 合并设置', () => {
     const { handlers } = setup()
