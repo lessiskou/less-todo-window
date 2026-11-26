@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { formatDueLabel, isRepeatDue } from '../../../shared/recurrence'
+import { localDayKey } from '../../../shared/rollover'
 import type { List, Task } from '../../../shared/types'
 import { formatTime } from '../hooks/useTasks'
 import { BellIcon, CheckIcon, CloseIcon, MoveDownIcon, MoveUpIcon } from './icons'
 
 interface TaskRowProps {
   task: Task
+  variant?: 'default' | 'repeat'
   onToggle(id: string): void
   onRemove(id: string): void
   onMove(id: string, list: List): void
@@ -23,6 +26,7 @@ function todayAt(hhmm: string): string | null {
 
 export default function TaskRow({
   task,
+  variant = 'default',
   onToggle,
   onRemove,
   onMove,
@@ -34,13 +38,15 @@ export default function TaskRow({
   const [reminderOpen, setReminderOpen] = useState(false)
 
   const done = task.doneAt !== null
+  const isRepeat = task.repeatDays != null
+  const due = isRepeat && isRepeatDue(task, localDayKey(new Date()))
   const overdue = !done && task.reminderAt !== null && new Date(task.reminderAt).getTime() < Date.now()
 
   return (
     <div
-      className={`row${done ? ' is-done' : ''}${highlighted ? ' is-highlighted' : ''}`}
+      className={`row${done ? ' is-done' : ''}${highlighted ? ' is-highlighted' : ''}${due ? ' is-recurring' : ''}`}
       data-task-id={task.id}
-      draggable={!done}
+      draggable={!done && !isRepeat}
       onDragStart={(event) => {
         event.dataTransfer.setData('text/plain', task.id)
         event.dataTransfer.effectAllowed = 'move'
@@ -55,7 +61,9 @@ export default function TaskRow({
         {done ? <CheckIcon /> : null}
       </button>
 
-      {task.reminderAt ? (
+      {isRepeat && variant === 'default' ? (
+        <span className="time repeat-tag">循环</span>
+      ) : task.reminderAt ? (
         <span className={`time${overdue ? ' overdue' : ''}`}>{formatTime(task.reminderAt)}</span>
       ) : null}
 
@@ -63,9 +71,15 @@ export default function TaskRow({
         {task.text}
       </span>
 
+      {variant === 'repeat' ? (
+        <span className="repeat-meta">
+          每 {task.repeatDays} 天 · 下次 {formatDueLabel(task.dueOn ?? '')}
+        </span>
+      ) : null}
+
       {!done ? (
         <span className="actions">
-          {task.list === 'today' ? (
+          {isRepeat ? null : task.list === 'today' ? (
             <>
               <button
                 type="button"
@@ -109,7 +123,7 @@ export default function TaskRow({
         </span>
       )}
 
-      {reminderOpen && !done ? (
+      {reminderOpen && !done && !isRepeat ? (
         <div className="reminder-editor">
           <input
             type="time"
@@ -136,7 +150,7 @@ export default function TaskRow({
         </div>
       ) : null}
 
-      {highlighted && !done ? (
+      {highlighted && !done && !isRepeat ? (
         <div className="snooze">
           <button type="button" className="small primary" onClick={() => onSnooze(task.id, 5)}>
             稍后提醒 5 分钟
