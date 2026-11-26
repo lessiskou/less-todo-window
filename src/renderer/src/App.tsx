@@ -173,8 +173,8 @@ export default function App() {
         <TaskEditor
           key={editingTask.id}
           task={editingTask}
-          onSave={async (text) => {
-            const ok = await api.updateText(editingTask.id, text)
+          onSave={async (text, repeatDays) => {
+            const ok = await api.saveTask(editingTask.id, { text, repeatDays })
             if (ok) setEditingTask(null)
             return ok
           }}

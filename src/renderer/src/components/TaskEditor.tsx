@@ -4,7 +4,7 @@ import { CloseIcon } from './icons'
 
 interface TaskEditorProps {
   task: Task
-  onSave(text: string): Promise<boolean>
+  onSave(text: string, repeatDays: number | null): Promise<boolean>
   onCancel(): void
   onRequestHeight(height: number): void
 }
@@ -13,6 +13,7 @@ const MAX_TEXTAREA_HEIGHT = 250
 
 export default function TaskEditor({ task, onSave, onCancel, onRequestHeight }: TaskEditorProps) {
   const [draft, setDraft] = useState(task.text)
+  const [repeatDraft, setRepeatDraft] = useState(task.repeatDays?.toString() ?? '')
   const [saving, setSaving] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -67,7 +68,9 @@ export default function TaskEditor({ task, onSave, onCancel, onRequestHeight }: 
   const save = async (): Promise<void> => {
     if (!canSave) return
     setSaving(true)
-    const ok = await onSave(draft)
+    const days = Number.parseInt(repeatDraft, 10)
+    const repeatDays = Number.isInteger(days) && days >= 1 && days <= 365 ? days : null
+    const ok = await onSave(draft, repeatDays)
     if (!ok) setSaving(false)
   }
 
@@ -93,6 +96,21 @@ export default function TaskEditor({ task, onSave, onCancel, onRequestHeight }: 
             void save()
           }}
         />
+        {task.doneAt === null ? (
+          <label className="edit-repeat">
+            <span>循环</span>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              step={1}
+              placeholder="天"
+              value={repeatDraft}
+              onChange={(event) => setRepeatDraft(event.target.value)}
+            />
+            <span className="edit-repeat-hint">留空 = 不循环</span>
+          </label>
+        ) : null}
         <div className="edit-actions">
           <button type="button" className="small" onClick={onCancel}>
             取消
