@@ -10,6 +10,11 @@ extraResources:
     to: tray.png
   - from: resources/LXGW-WenKai-OFL.txt
     to: LXGW-WenKai-OFL.txt
+publish:
+  provider: github
+  owner: lessiskou
+  repo: less-todo-window
+  releaseType: release
 win:
   target:
     - nsis

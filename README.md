@@ -14,7 +14,8 @@
 - **跨天结转**：没做完的任务第二天仍留在今天；已完成任务自动清除；过期提醒不补发。
 - **快捷键**：`Ctrl+Shift+Space` 随时显示 / 隐藏小窗；托盘菜单同样会标出。
 - **托盘常驻**：关闭窗口收进托盘，提醒照常；托盘菜单可显示/隐藏、开关开机自启、退出。
-- **设置**：窗口透明度、始终置顶、开机自启。
+- **设置**：窗口透明度、始终置顶、开机自启；可查看当前版本并手动检查更新。
+- **自动更新**：安装版启动后静默检查 GitHub 正式 Release，发现新版本时轻提示一次，确认后下载，退出时自动安装。
 - **本地数据**：不上传、不联网；数据损坏时自动从备份恢复并提示。
 
 ## 界面与字体
@@ -48,6 +49,14 @@ npm run build:win
 
 产物在 `dist/`，运行 `Less Todo Setup x.y.z.exe` 安装。安装版才会完整支持系统通知与开机自启（Windows 通知依赖开始菜单快捷方式的 AUMID）。
 
+发布新版本到 GitHub Releases：
+
+```bash
+GH_TOKEN=$(gh auth token) npm run release:win
+```
+
+发布后核对 Release 资产包含安装包、`latest.yml` 与 `.blockmap`。
+
 如果 electron-builder 下载构建工具失败，可设置：
 
 ```bash
@@ -71,5 +80,6 @@ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-
 - 不留历史记录与统计：跨天时已完成任务直接删除。
 - 重复任务仅支持每 N 天，不支持每周 / 每月规则，到期不弹系统通知。
 - 不支持子任务、标签、优先级。
-- 无自动更新，升级需重新安装。
+- 自动更新只跟随正式 Release，不提供 beta / 预发布渠道；**1.3.0 及更早版本需要手动安装一次 1.4.0，之后才会自动更新**。
+- 安装包未签名，Windows SmartScreen 可能提示"未知发布者"。
 - 只提供 NSIS 安装包，不提供便携版。
