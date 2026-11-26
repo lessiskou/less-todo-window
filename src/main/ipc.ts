@@ -1,8 +1,9 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { List, Settings } from '../shared/types'
 import type { SettingsService } from './settingsService'
 import type { TaskService } from './taskService'
+import type { Updater } from './updater'
 
 export interface IpcDeps {
   showWindow(): void
@@ -10,7 +11,11 @@ export interface IpcDeps {
   resizeWindow(height: number): void
 }
 
-export function createHandlers(service: TaskService, settings: SettingsService) {
+export function createHandlers(
+  service: TaskService,
+  settings: SettingsService,
+  updater: Updater
+) {
   return {
     [IPC.tasksGet]: () => service.getAll(),
     [IPC.tasksAdd]: (input: {
@@ -30,16 +35,24 @@ export function createHandlers(service: TaskService, settings: SettingsService) 
     },
     [IPC.tasksSnooze]: (id: string, minutes: number) => service.snooze(id, minutes),
     [IPC.settingsGet]: () => settings.get(),
-    [IPC.settingsUpdate]: (patch: Partial<Settings>) => settings.update(patch)
+    [IPC.settingsUpdate]: (patch: Partial<Settings>) => settings.update(patch),
+    [IPC.updateGetState]: () => updater.getState(),
+    [IPC.updateCheck]: (manual: boolean) => updater.check(manual),
+    [IPC.updateDownload]: () => updater.download(),
+    [IPC.updateInstall]: () => {
+      updater.install()
+    },
+    [IPC.appVersionGet]: () => app.getVersion()
   }
 }
 
 export function registerIpc(
   service: TaskService,
   settings: SettingsService,
+  updater: Updater,
   deps: IpcDeps
 ): void {
-  const handlers = createHandlers(service, settings)
+  const handlers = createHandlers(service, settings, updater)
 
   for (const [channel, handler] of Object.entries(handlers)) {
     ipcMain.handle(channel, (_event, ...args: unknown[]) =>

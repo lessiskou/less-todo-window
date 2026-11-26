@@ -14,6 +14,8 @@ import {
 import { JsonStore } from './store'
 import { isTaskData, TaskService, type TaskData } from './taskService'
 import { createTray } from './tray'
+import { createElectronAdapter } from './updateAdapter'
+import { createUpdater } from './updater'
 import { createMainWindow } from './window'
 import { setToggleTarget, toggleWindow } from './windowToggle'
 
@@ -50,6 +52,17 @@ function setup(): void {
 
   const settings = new SettingsService(settingsStore)
   const service = new TaskService(dataStore)
+
+  const updater = createUpdater({
+    adapter: createElectronAdapter(),
+    isPackaged: app.isPackaged,
+    getPromptedVersion: () => settings.get().promptedUpdateVersion,
+    broadcast: (state) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send(IPC.updateChanged, state)
+      }
+    }
+  })
   let dataWarning = dataStore.loadWarning()
   try {
     service.rolloverIfNeeded()
@@ -73,6 +86,12 @@ function setup(): void {
     settings.update({ bounds: point })
   })
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    setTimeout(() => {
+      void updater.check(false)
+    }, 15_000)
+  })
+
   if (dataWarning) {
     const warningText = dataWarning
     mainWindow.webContents.on('did-finish-load', () => {
@@ -92,7 +111,7 @@ function setup(): void {
     }
   })
 
-  registerIpc(service, settings, {
+  registerIpc(service, settings, updater, {
     showWindow: () => {
       mainWindow?.show()
       mainWindow?.focus()

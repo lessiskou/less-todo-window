@@ -51,7 +51,14 @@ const setup = () => {
     onChange: () => undefined
   } as unknown as SettingsService
 
-  return { handlers: createHandlers(service, settings), calls }
+  const updater = {
+    getState: () => ({ phase: 'idle' as const }),
+    check: vi.fn(async () => undefined),
+    download: vi.fn(async () => undefined),
+    install: vi.fn()
+  }
+
+  return { handlers: createHandlers(service, settings, updater as never), calls, updater }
 }
 
 describe('createHandlers', () => {
@@ -77,5 +84,11 @@ describe('createHandlers', () => {
   it('settingsUpdate 合并设置', () => {
     const { handlers } = setup()
     expect(handlers[IPC.settingsUpdate]({ opacity: 0.8 }).opacity).toBe(0.8)
+  })
+  it('updateCheck 转发 manual 并返回状态', () => {
+    const { handlers, updater } = setup()
+    expect(handlers[IPC.updateGetState]()).toEqual({ phase: 'idle' })
+    handlers[IPC.updateCheck](true)
+    expect(updater.check).toHaveBeenCalledWith(true)
   })
 })

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC, type RendererApi } from '../shared/ipc'
 import type { List, Settings, Task } from '../shared/types'
+import type { UpdateState } from '../shared/update'
 
 function subscribe<T>(channel: string, cb: (payload: T) => void): () => void {
   const listener = (_event: Electron.IpcRendererEvent, payload: T): void => cb(payload)
@@ -32,7 +33,19 @@ const api: RendererApi = {
   },
   onTasksChanged: (cb) => subscribe<Task[]>(IPC.tasksChanged, cb),
   onHighlight: (cb) => subscribe<string[]>(IPC.tasksHighlight, cb),
-  onDataWarning: (cb) => subscribe<string>(IPC.dataWarning, cb)
+  onDataWarning: (cb) => subscribe<string>(IPC.dataWarning, cb),
+  getAppVersion: () => ipcRenderer.invoke(IPC.appVersionGet) as Promise<string>,
+  getUpdateState: () => ipcRenderer.invoke(IPC.updateGetState) as Promise<UpdateState>,
+  checkForUpdates: async (manual: boolean) => {
+    await ipcRenderer.invoke(IPC.updateCheck, manual)
+  },
+  downloadUpdate: async () => {
+    await ipcRenderer.invoke(IPC.updateDownload)
+  },
+  installUpdate: async () => {
+    await ipcRenderer.invoke(IPC.updateInstall)
+  },
+  onUpdateChanged: (cb) => subscribe<UpdateState>(IPC.updateChanged, cb)
 }
 
 contextBridge.exposeInMainWorld('api', api)

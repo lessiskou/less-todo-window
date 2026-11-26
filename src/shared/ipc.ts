@@ -1,4 +1,5 @@
 import type { List, Settings, Task } from './types'
+import type { UpdateState } from './update'
 
 export const IPC = {
   tasksGet: 'tasks:get',
@@ -14,7 +15,13 @@ export const IPC = {
   windowSetHeight: 'window:set-height',
   tasksChanged: 'tasks:changed',
   tasksHighlight: 'tasks:highlight',
-  dataWarning: 'data:warning'
+  dataWarning: 'data:warning',
+  updateGetState: 'update:get-state',
+  updateCheck: 'update:check',
+  updateDownload: 'update:download',
+  updateInstall: 'update:install',
+  updateChanged: 'update:changed',
+  appVersionGet: 'app:version'
 } as const
 
 export interface RendererApi {
@@ -40,6 +47,12 @@ export interface RendererApi {
   onTasksChanged(cb: (tasks: Task[]) => void): () => void
   onHighlight(cb: (ids: string[]) => void): () => void
   onDataWarning(cb: (message: string) => void): () => void
+  getAppVersion(): Promise<string>
+  getUpdateState(): Promise<UpdateState>
+  checkForUpdates(manual: boolean): Promise<void>
+  downloadUpdate(): Promise<void>
+  installUpdate(): Promise<void>
+  onUpdateChanged(cb: (state: UpdateState) => void): () => void
 }
 
 declare global {
