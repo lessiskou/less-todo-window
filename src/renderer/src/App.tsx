@@ -9,11 +9,14 @@ import SearchBar from './components/SearchBar'
 import SettingsMenu from './components/SettingsMenu'
 import TaskEditor from './components/TaskEditor'
 import TaskList from './components/TaskList'
+import UpdateBanner from './components/UpdateBanner'
 import { CloseIcon } from './components/icons'
 import { useTasks } from './hooks/useTasks'
+import { useUpdater } from './hooks/useUpdater'
 
 export default function App() {
   const api = useTasks()
+  const updater = useUpdater()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -26,6 +29,16 @@ export default function App() {
   const headerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const quickRef = useRef<HTMLDivElement>(null)
+
+  const showUpdateBanner = Boolean(
+    updater.state &&
+      !updater.dismissed &&
+      (updater.state.phase === 'available'
+        ? updater.state.prompt
+        : updater.state.phase === 'downloading' ||
+          updater.state.phase === 'downloaded' ||
+          (updater.state.phase === 'error' && updater.state.manual))
+  )
 
   const searching = searchOpen && query.trim().length > 0
   const filter = (tasks: typeof api.today): typeof api.today =>
@@ -99,6 +112,15 @@ export default function App() {
   return (
     <div className="card">
       <div ref={headerRef}>
+        {showUpdateBanner && updater.state ? (
+          <UpdateBanner
+            state={updater.state}
+            onUpdate={updater.download}
+            onInstall={updater.install}
+            onSkip={updater.dismiss}
+            onDismissError={updater.dismiss}
+          />
+        ) : null}
         {dataWarning ? (
           <div className="banner warning">
             <span>{dataWarning}</span>
@@ -120,7 +142,14 @@ export default function App() {
           onSettings={() => setSettingsOpen((open) => !open)}
         />
         {searchOpen ? <SearchBar value={query} onChange={setQuery} onClose={closeSearch} /> : null}
-        {settingsOpen ? <SettingsMenu onClose={() => setSettingsOpen(false)} /> : null}
+        {settingsOpen ? (
+          <SettingsMenu
+            appVersion={updater.appVersion}
+            updateState={updater.state}
+            onCheckUpdates={updater.check}
+            onClose={() => setSettingsOpen(false)}
+          />
+        ) : null}
       </div>
 
       <main className="content">

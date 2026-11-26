@@ -1,11 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Settings } from '../../../shared/types'
+import type { UpdateState } from '../../../shared/update'
 
 interface SettingsMenuProps {
+  appVersion: string | null
+  updateState: UpdateState | null
+  onCheckUpdates(): void
   onClose(): void
 }
 
-export default function SettingsMenu({ onClose }: SettingsMenuProps) {
+function updateStatusText(state: UpdateState | null): string | null {
+  if (!state) return null
+  switch (state.phase) {
+    case 'not-available':
+      return state.message ?? '已是最新版本'
+    case 'error':
+      return state.message ?? '检查更新失败'
+    case 'available':
+      return `发现新版本 ${state.version ?? ''}`
+    case 'downloaded':
+      return '更新已就绪，退出时安装'
+    default:
+      return null
+  }
+}
+
+export default function SettingsMenu({
+  appVersion,
+  updateState,
+  onCheckUpdates,
+  onClose
+}: SettingsMenuProps) {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [error, setError] = useState<string | null>(null)
   const opacityTimer = useRef<number | null>(null)
@@ -72,6 +97,25 @@ export default function SettingsMenu({ onClose }: SettingsMenuProps) {
             />
             <span>开机自启</span>
           </label>
+
+          <div className="setting-row">
+            <span>当前版本</span>
+            <span className="setting-value">{appVersion ?? '…'}</span>
+          </div>
+
+          <div className="setting-row">
+            <button
+              type="button"
+              className="small"
+              disabled={updateState?.phase === 'checking'}
+              onClick={onCheckUpdates}
+            >
+              {updateState?.phase === 'checking' ? '检查中…' : '检查更新'}
+            </button>
+            {updateStatusText(updateState) ? (
+              <span className="setting-value">{updateStatusText(updateState)}</span>
+            ) : null}
+          </div>
         </>
       ) : (
         <div className="setting-row">读取设置…</div>

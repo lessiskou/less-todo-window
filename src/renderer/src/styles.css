@@ -126,6 +126,18 @@ button {
   color: var(--banner-fg);
 }
 
+.banner.update {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+
+.banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
 .banner .small {
   color: inherit;
 }
