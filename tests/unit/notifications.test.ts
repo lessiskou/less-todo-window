@@ -34,7 +34,9 @@ const task = (id: string): Task => ({
   createdAt: '2026-11-18T00:00:00.000Z',
   doneAt: null,
   reminderAt: '2026-11-18T02:00:00.000Z',
-  notifiedAt: null
+  notifiedAt: null,
+  repeatDays: null,
+  dueOn: null
 });
 
 beforeEach(() => {

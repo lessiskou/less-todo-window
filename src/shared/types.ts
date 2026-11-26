@@ -1,4 +1,4 @@
-export type List = 'today' | 'later'
+export type List = 'today' | 'later' | 'repeat'
 
 export interface Task {
   id: string
@@ -8,6 +8,8 @@ export interface Task {
   doneAt: string | null
   reminderAt: string | null
   notifiedAt: string | null
+  repeatDays: number | null
+  dueOn: string | null
 }
 
 export interface Settings {

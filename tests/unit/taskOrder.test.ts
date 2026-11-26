@@ -4,7 +4,7 @@ import type { Task } from '../../src/shared/types';
 
 const t = (patch: Partial<Task>): Task => ({
   id: Math.random().toString(36).slice(2), text: 'x', list: 'today', createdAt: '2026-11-18T01:00:00.000Z',
-  doneAt: null, reminderAt: null, notifiedAt: null, ...patch
+  doneAt: null, reminderAt: null, notifiedAt: null, repeatDays: null, dueOn: null, ...patch
 });
 
 describe('groupTasks', () => {

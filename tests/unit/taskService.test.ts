@@ -60,6 +60,20 @@ describe('TaskService', () => {
     expect(st.get().tasks.map((t) => t.text)).toEqual(['first']);
     expect(seen).toEqual([['first']]);
   });
+  it('加载旧数据时补齐 repeatDays / dueOn 为 null', () => {
+    const legacy = {
+      id: 'old', text: '旧任务', list: 'today',
+      createdAt: '2026-11-18T01:00:00.000Z', doneAt: null,
+      reminderAt: null, notifiedAt: null
+    } as unknown as Task
+    const s = fakeStore()
+    s.get().tasks = [legacy]
+    const svcOld = new TaskService(s.store, () => now)
+    const [loaded] = svcOld.getAll()
+    expect(loaded.repeatDays).toBeNull()
+    expect(loaded.dueOn).toBeNull()
+    expect(loaded.text).toBe('旧任务')
+  })
   it('跨天结转每天只执行一次', () => {
     expect(svc.rolloverIfNeeded()).toBe(false);
     const later = new Date(2026, 10, 19, 8, 0);

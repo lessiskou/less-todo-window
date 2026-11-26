@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { collectDueTasks, nextReminderTime } from '../../src/shared/reminders';
 import type { Task } from '../../src/shared/types';
 
-const base: Omit<Task, 'id'> = { text: 'x', list: 'today', createdAt: '2026-11-18T00:00:00.000Z', doneAt: null, reminderAt: null, notifiedAt: null };
+const base: Omit<Task, 'id'> = { text: 'x', list: 'today', createdAt: '2026-11-18T00:00:00.000Z', doneAt: null, reminderAt: null, notifiedAt: null, repeatDays: null, dueOn: null };
 const now = new Date(2026, 10, 18, 10, 0);
 const iso = (h: number, m = 0) => new Date(2026, 10, 18, h, m).toISOString();
 

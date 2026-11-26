@@ -4,7 +4,7 @@ import type { Task } from '../../src/shared/types';
 
 const t = (patch: Partial<Task>): Task => ({
   id: '1', text: 'x', list: 'today', createdAt: '2026-11-17T01:00:00.000Z',
-  doneAt: null, reminderAt: null, notifiedAt: null, ...patch
+  doneAt: null, reminderAt: null, notifiedAt: null, repeatDays: null, dueOn: null, ...patch
 });
 const now = new Date(2026, 10, 18, 8, 0); // 2026-11-18 08:00 本地
 

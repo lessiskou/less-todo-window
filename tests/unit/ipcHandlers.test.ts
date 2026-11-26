@@ -18,7 +18,9 @@ const baseTask: Task = {
   createdAt: '2026-11-18T01:00:00.000Z',
   doneAt: null,
   reminderAt: null,
-  notifiedAt: null
+  notifiedAt: null,
+  repeatDays: null,
+  dueOn: null
 }
 
 const setup = () => {

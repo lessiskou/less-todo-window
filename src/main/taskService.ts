@@ -20,7 +20,13 @@ function isTask(value: unknown): value is Task {
     typeof task.createdAt === 'string' &&
     (task.doneAt === null || typeof task.doneAt === 'string') &&
     (task.reminderAt === null || typeof task.reminderAt === 'string') &&
-    (task.notifiedAt === null || typeof task.notifiedAt === 'string')
+    (task.notifiedAt === null || typeof task.notifiedAt === 'string') &&
+    (task.repeatDays === undefined ||
+      task.repeatDays === null ||
+      (typeof task.repeatDays === 'number' &&
+        Number.isInteger(task.repeatDays) &&
+        task.repeatDays > 0)) &&
+    (task.dueOn === undefined || task.dueOn === null || typeof task.dueOn === 'string')
   )
 }
 
@@ -44,7 +50,13 @@ export class TaskService {
     private readonly now: () => Date = () => new Date()
   ) {
     const data = store.load()
-    this.tasks = Array.isArray(data.tasks) ? data.tasks.filter(isTask) : []
+    this.tasks = Array.isArray(data.tasks)
+      ? data.tasks.filter(isTask).map((task) => ({
+          ...task,
+          repeatDays: task.repeatDays ?? null,
+          dueOn: task.dueOn ?? null
+        }))
+      : []
     this.lastRolloverDay = typeof data.lastRolloverDay === 'string' ? data.lastRolloverDay : null
   }
 
@@ -60,7 +72,9 @@ export class TaskService {
       createdAt: this.now().toISOString(),
       doneAt: null,
       reminderAt: input.reminderAt ?? null,
-      notifiedAt: null
+      notifiedAt: null,
+      repeatDays: null,
+      dueOn: null
     }
     this.commit([...this.tasks, task])
     return task
